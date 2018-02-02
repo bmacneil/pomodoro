@@ -3,3 +3,4 @@
 docs/
 venv/
 tests/
+*.json
