@@ -291,13 +291,94 @@ class LearnForm(object):
         root.mainloop()
 
 
+class MenuForm(object):
+    """docstring for ClassName"""
+
+    def __init__(self):
+        self.makeform()
+
+    def fetch(self, entries, root):
+        # print(type(root))
+        # print(type(entries))
+        for entry in entries:
+            if entry[0] == 'Project':
+                self.project = entry[1].get()
+        root.destroy()
+
+    def addGoalForm(self):
+        f = GoalForm()
+
+    def selectProject(self, project, root):
+        print(self.mylist.get(ACTIVE))
+        root.destroy()
+        f = GoalForm()
+
+    def makeform(self):
+        projects = ['Pomodoro', 'TempSensor', 'PoolPumpControl', 'FutureAuthoring', 'Website']
+        # project = 'Default'
+        root = Tk()
+        root.title('Menu')
+        root.geometry('{}x{}'.format(300, 300))
+
+        scrollbar = Scrollbar(root)
+
+        self.mylist = Listbox(root, yscrollcommand=scrollbar.set)
+        for p in projects:
+            self.mylist.insert(END, p)
+
+        # print(type(mylist.get(ACTIVE)))
+        # print(mylist.get(ACTIVE))
+        # print(type(mylist.curselection()))
+        # print(mylist.curselection())
+
+        selectButton = Button(root, text='Select', command=(lambda p=0: self.selectProject(p, root)))
+        selectButton.pack() #side=TOP, fill=X, padx=5, pady=5)
+        selectButton.place(bordermode=INSIDE, relx=0.05, x=-5, rely=0.1, relheight=.2, relwidth=.3, anchor=NW)
+
+        addButton = Button(root, text='New', command=self.addGoalForm)
+        addButton.pack() #side=TOP, fill=X, padx=5, pady=5)
+        addButton.place(bordermode=INSIDE, relx=0.05, x=-5, rely=0.3, relheight=.2, relwidth=.3, anchor=NW)
+
+        removeButton = Button(root, text='Remove')
+        removeButton.pack() #side=TOP, fill=X, padx=5, pady=5)
+        removeButton.place(bordermode=INSIDE, relx=0.05, x=-5, rely=0.5, relheight=.2, relwidth=.3, anchor=NW)
+
+        quitButton = Button(root, text='Quit', command=root.quit)
+        quitButton.pack()  #side=TOP, fill=X, padx=5, pady=5)
+        quitButton.place(bordermode=INSIDE, relx=0.05, x=-5, rely=0.7, relheight=.2, relwidth=.3, anchor=NW)
+
+
+
+        scrollbar.pack()
+        scrollbar.place(bordermode=OUTSIDE, relheight=1, relx=1, anchor=NE)
+        self.mylist.pack() #side=RIGHT, fill=Y)
+        self.mylist.place(bordermode=OUTSIDE,relx=1, x=-15, rely=0, relheight=1, relwidth=.6, anchor=NE)
+        scrollbar.config(command=self.mylist.yview)
+
+        # ents[0][1].focus_set()
+        # root.bind('<Return>', (lambda event, e=ents: self.fetch(e, root)))
+        # Button to close window
+        # Button to enter info. Same as return key
+        # b1 = Button(root, text='Enter', command=(
+            # lambda e=ents: self.fetch(e, root)))
+        # b1.pack(side=RIGHT, padx=5, pady=5)
+        # # Button to remove jobs
+        # rmvjob = Button(
+        #     root, text='Remove', command=lambda r=root: self.removeJob(root))
+        # rmvjob.pack(side=LEFT, padx=5, pady=5)
+        root.mainloop()
+
+
 goals = TinyDB('test_goals.json')
 sessions = TinyDB('test_sessions.json')
 
-f = GoalForm()
-print(vars(f))
+m = MenuForm()
+# f = GoalForm()
+# print(vars(f))
 # goals.insert(vars(f))
 
-t = LearnForm(vars(f))
-t.printEntries()
-task.insert(vars(t))
+
+
+# t = LearnForm(vars(f))
+# t.printEntries()
+# task.insert(vars(t))
