@@ -195,10 +195,10 @@ class TaskForm(object):
         # print(type(root))
         # print(type(entries))
         for entry in entries:
-            if entry[0] == 'Project':
-                self.project = entry[1].get()
-            elif entry[0] == '\ta)':
-                self.challenge[0] = entry[1].get()
+            if entry[0] == 'Completed':
+                self.completed = entry[1].get()
+            elif entry[0] == 'Todo':
+                self.todo = entry[1].get()
             # else:
             #     print("\nFORM FETCH ERROR\n")
         root.destroy()
@@ -466,11 +466,20 @@ settings['longBreak'] = 10
 # s = Settings()
 # print(s.toDict())
 f = GoalForm()
+pom = {'project': f.project,
+       'challenge': f.challenge,
+       'steps': f.steps,
+       'sessions': f.sessions,
+       'type': f.type.get()}
+proj = goals.table(f.project)
+
+print(proj.insert(pom))
+
 # print(vars(f))
-if f.type.get() == 'task':
-    l = TaskForm(vars(f))
+if pom['type'] == 'task':
+    l = TaskForm(pom)
 else:
-    l = LearnForm(vars(f))
+    l = LearnForm(pom)
 # l = LearnForm(settings)
 # m = MenuForm()
 # print(vars(f))
