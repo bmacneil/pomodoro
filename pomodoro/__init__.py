@@ -6,6 +6,7 @@ import time
 
 
 class Pomodoro(object):
+    '''Main app class for the pomodoro program'''
     def __init__(self, project=None):
         if project is None:
             print('New')
