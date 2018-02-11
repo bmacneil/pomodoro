@@ -2,6 +2,7 @@
 
 from tkinter import *
 from tinydb import *
+import time
 
 
 class Pomodoro(object):
@@ -161,7 +162,6 @@ class GoalForm(object):
         Radiobutton(root, text="Learn", padx=20, variable=self.type,
                     value='learn').pack(anchor=W, side=LEFT)
 
-
         root.bind('<Return>', (lambda event, e=ents: self.fetch(e, root)))
         # Button to close window
         enterButton = Button(root, text='Enter', command=(
@@ -182,6 +182,7 @@ class GoalForm(object):
 
 class TaskForm(object):
     """docstring for ClassName"""
+
     def __init__(self, pom):
         self.project = pom['project']
         self.challenge = pom['challenge']
@@ -279,7 +280,6 @@ class LearnForm(object):
         self.steps = pom['steps']
         self.sessions = pom['sessions']
         self.summary = ''
-        self.sessions = settings['sessions']
         self.makeform()
 
     def fetch(self, entries, root):
@@ -416,42 +416,113 @@ class MenuForm(object):
         # print(mylist.curselection())
 
         selectButton = Button(root, text='Start', command=(lambda :self.selectProject(root)))
-        selectButton.pack() #side=TOP, fill=X, padx=5, pady=5)
-        selectButton.place(bordermode=INSIDE, relx=0.05, x=-5, rely=0.1, relheight=.2, relwidth=.3, anchor=NW)
+        selectButton.pack()
+        selectButton.place(bordermode=INSIDE,
+                           relx=0.05,
+                           x=-5,
+                           rely=0.1,
+                           relheight=.2,
+                           relwidth=.3,
+                           anchor=NW)
 
         addButton = Button(root, text='New', command=self.addGoalForm)
-        addButton.pack() #side=TOP, fill=X, padx=5, pady=5)
-        addButton.place(bordermode=INSIDE, relx=0.05, x=-5, rely=0.3, relheight=.2, relwidth=.3, anchor=NW)
+        addButton.pack()
+        addButton.place(bordermode=INSIDE,
+                        relx=0.05,
+                        x=-5,
+                        rely=0.3,
+                        relheight=.2,
+                        relwidth=.3,
+                        anchor=NW)
 
         removeButton = Button(root, text='Remove')
-        removeButton.pack() #side=TOP, fill=X, padx=5, pady=5)
-        removeButton.place(bordermode=INSIDE, relx=0.05, x=-5, rely=0.5, relheight=.2, relwidth=.3, anchor=NW)
+        removeButton.pack()
+        removeButton.place(bordermode=INSIDE,
+                           relx=0.05,
+                           x=-5,
+                           rely=0.5,
+                           relheight=.2,
+                           relwidth=.3,
+                           anchor=NW)
 
         quitButton = Button(root, text='Quit', command=root.quit)
-        quitButton.pack()  #side=TOP, fill=X, padx=5, pady=5)
-        quitButton.place(bordermode=INSIDE, relx=0.05, x=-5, rely=0.7, relheight=.2, relwidth=.3, anchor=NW)
-
-
+        quitButton.pack()
+        quitButton.place(bordermode=INSIDE,
+                         relx=0.05,
+                         x=-5,
+                         rely=0.7,
+                         relheight=.2,
+                         relwidth=.3,
+                         anchor=NW)
 
         scrollbar.pack()
         scrollbar.place(bordermode=OUTSIDE, relheight=1, relx=1, anchor=NE)
-        self.mylist.pack() #side=RIGHT, fill=Y)
-        self.mylist.place(bordermode=OUTSIDE,relx=1, x=-15, rely=0, relheight=1, relwidth=.6, anchor=NE)
-        scrollbar.config(command=self.mylist.yview)
+        self.mylist.pack()
+        self.mylist.place(bordermode=OUTSIDE,
+                          relx=1,
+                          x=-15,
+                          rely=0,
+                          relheight=1,
+                          relwidth=.6,
+                          anchor=NE)
 
-        # ents[0][1].focus_set()
-        # root.bind('<Return>', (lambda event, e=ents: self.fetch(e, root)))
-        # Button to close window
-        # Button to enter info. Same as return key
-        # b1 = Button(root, text='Enter', command=(
-            # lambda e=ents: self.fetch(e, root)))
-        # b1.pack(side=RIGHT, padx=5, pady=5)
-        # # Button to remove jobs
-        # rmvjob = Button(
-        #     root, text='Remove', command=lambda r=root: self.removeJob(root))
-        # rmvjob.pack(side=LEFT, padx=5, pady=5)
+        scrollbar.config(command=self.mylist.yview)
         root.mainloop()
 
+
+class StatsForm(object):
+    def __init__(self, project, pom_id):
+        self.project = project
+        db = TinyDB('test_goals.json').table(self.project)
+        pom = db.get(doc_id=pom_id)
+        self.timeLabels(pom['start'], pom['end'])
+        self.makeform()
+
+    def sec2Days(self, sec):
+        return sec // (60 * 60 * 24)
+
+    def timeLabels(self, start, end):
+        self.start = time.strftime("%H:%M:%S", time.localtime(start))
+        if self.sec2Days(start) == self.sec2Days(time.time()):
+            print('happend today')
+        self.end = (time.strftime("%H:%M:%S", time.localtime(end)))
+        td = end - start
+        m, s = (td // 60, td % 60)
+        h, m = (m // 60, m % 60)
+        self.duration = '{0}:{1}:{2}'.format(h, m, s)
+
+    def addSession(self):
+        print('Add another session to the pom')
+
+    def makeform(self):
+        fields = ['Project:', 'Start Time', 'End Time', 'Duration']
+        text = [self.project, self.start, self.end, self.duration]
+        root = Tk()
+        entries = []
+        for f, t in zip(fields, text):
+            row = Frame(root)
+            lab = Label(row, width=12, text=f, anchor='w')
+            if t is '':
+                ent = Entry(row, width=45)
+                ent.insert(END, t)
+            elif t:
+                ent = Label(row, width=10, text=t, anchor='w')
+            row.pack(side=TOP, fill=X, padx=5, pady=2)
+            lab.pack(side=LEFT)
+            if t is not None:
+                ent.pack(side=RIGHT, expand=YES, fill=X)
+                entries.append((f, ent))
+
+        root.bind('<Return>', (lambda event: root.destroy()))
+
+        # Button to enter info. Same as return key
+        continueBtn = Button(root, text='Continue', command=(
+            lambda: self.addSession()))
+        continueBtn.pack(side=RIGHT, padx=5, pady=5)
+        quitBtn = Button(root, text='Quit', command=root.quit)
+        quitBtn.pack(side=LEFT, padx=5, pady=5)
+
+        root.mainloop()
 
 goals = TinyDB('test_goals.json')
 sessions = TinyDB('test_sessions.json')
@@ -466,6 +537,7 @@ settings['longBreak'] = 10
 # s = Settings()
 # print(s.toDict())
 f = GoalForm()
+start = int(time.time())
 pom = {'project': f.project,
        'challenge': f.challenge,
        'steps': f.steps,
@@ -473,13 +545,25 @@ pom = {'project': f.project,
        'type': f.type.get()}
 proj = goals.table(f.project)
 
-print(proj.insert(pom))
+pomID = proj.insert(pom)
 
 # print(vars(f))
 if pom['type'] == 'task':
     l = TaskForm(pom)
+    end = int(time.time())
+    session = {'completed': l.completed,
+               'todo': l.todo,
+               'start': start,
+               'end': end}
 else:
     l = LearnForm(pom)
+    end = int(time.time())
+    session = {'summary': l.summary,
+               'start': start,
+               'end': end}
+proj.update(session, doc_ids=[pomID])
+
+StatsForm('This', 1)
 # l = LearnForm(settings)
 # m = MenuForm()
 # print(vars(f))
