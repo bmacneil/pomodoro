@@ -1,184 +1,90 @@
 #! /usr/bin/python3
 
-from tkinter import *
+import tkinter as tk
 from tinydb import *
 import time
 
 
-class Pomodoro(object):
+class SessionTimer(object):
     '''Main app class for the pomodoro program'''
+
     def __init__(self, project=None):
         if project is None:
             print('New')
 
 
-class Settings(object):
-    def __init__(self):
-        self.dir = '/home/brad/Projects/Python/pomodoro/pomodoro'
-        self.time = 25
-        self.shortBreak = 5
-        self.longBreak = 20
-        self.makeform()
+class EntryRow(tk.Frame):
+    def __init__(self, master, label):
+        row = tk.Frame(master)
+        lab = tk.Label(row, width=15, text=label, anchor='w')
+        self.ent = tk.Entry(row, width=45)
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        self.ent.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
 
-    def saveSettings(self):
-        print(vars(self))
-        db = TinyDB('settings.json')
-        db.insert(vars(self))
+    def get(self):
+        return self.ent.get()
 
-    def fetch(self, entries, root):
-            # print(type(root))
-            # print(type(entries))
-            for entry in entries:
-                if entry[0] == 'Time':
-                    self.time = entry[1].get()
-                elif entry[0] == 'Short Break':
-                    self.shortBreak = entry[1].get()
-                elif entry[0] == 'Long Break':
-                    self.longBreak = entry[1].get()
-            # self.saveSettings()
-            root.destroy()
-
-    def toDict(self):
-        return vars(self)
-
-    def makeform(self):
-        fields = ['Session Time', 'Short Break', 'Long Breaks']
-        text = [self.time, self.shortBreak, self.longBreak]
-        root = Tk()
-        entries = []
-        for f, t in zip(fields, text):
-            row = Frame(root)
-            lab = Label(row, width=15, text=f, anchor='w')
-            ent = Entry(row, width=45)
-            ent.insert(END, t)
-            row.pack(side=TOP, fill=X, padx=5, pady=5)
-            lab.pack(side=LEFT)
-            ent.pack(side=RIGHT, expand=YES, fill=X)
-            entries.append((f, ent))
-
-        ents = entries
-        ents[0][1].focus_set()
-        root.bind('<Return>', (lambda event, e=ents: self.fetch(e, root)))
-        # Button to close window
-        b3 = Button(root, text='Quit', command=root.quit)
-        b3.pack(side=LEFT, padx=5, pady=5)
-        # Button to enter info. Same as return key
-        b1 = Button(root, text='Enter', command=(
-            lambda e=ents: self.fetch(e, root)))
-        b1.pack(side=RIGHT, padx=5, pady=5)
-        # # Button to remove jobs
-        # rmvjob = Button(
-        #     root, text='Remove', command=lambda r=root: self.removeJob(root))
-        # rmvjob.pack(side=LEFT, padx=5, pady=5)
-        root.mainloop()
+    def set(self, text):
+        self.ent.insert(tk.END, text)
 
 
-class GoalForm(object):
+class MyText(tk.Text):
+    def __init__(self, master, **kw):
+        Text.__init__(self, master, kw)
+        # self.bind("<Return>", lambda e: None)
+        # self.bind("<Tab>", self.focus_next_window)
+        # self.bind("<Control-Return>", lambda e: '\n')
+
+    def focus_next_window(self, event):
+        event.widget.tk_focusNext().focus()
+        return("break")
+
+
+class GoalForm(tk.Toplevel):
     """docstring for ClassName"""
 
-    def __init__(self, p=''):
-        self.project = p
-        self.challenge = ['', '']
-        self.steps = ['', '', '']
-        self.sessions = 1
+    projEnt = ''
+    chalEnt = ['', '']
+    stepEnt = ['', '', '']
+    sessEnt = 1
+
+    def __init__(self, master):
+        print('Goal Form Opened')
+        tk.Toplevel.__init__(self, master)
         self.makeform()
 
-    def fetch(self, entries, root):
-        # print(type(root))
-        # print(type(entries))
-        for entry in entries:
-            if entry[0] == 'Project':
-                self.project = entry[1].get()
-            elif entry[0] == '\ta)':
-                self.challenge[0] = entry[1].get()
-            elif entry[0] == '\tb)':
-                self.challenge[1] = entry[1].get()
-            elif entry[0] == '\t1.':
-                self.steps[0] = entry[1].get()
-            elif entry[0] == '\t2.':
-                self.steps[1] = entry[1].get()
-            elif entry[0] == '\t3.':
-                self.steps[2] = entry[1].get()
-            elif entry[0] == 'Sessions':
-                self.sessions = entry[1].get()
-            # # TODO: Move to settings form
-            # elif entry[0] == 'Time':
-            #     self.time = entry[1].get()
-            # elif entry[0] == 'Short Break':
-            #     self.shortBreak = entry[1].get()
-            # elif entry[0] == 'Long Break':
-            #     self.longBreak = entry[1].get()
-        root.destroy()
-
-    def printEntries(self):
-        print("\n**************************")
-        print(self.project)
-        print(self.challenge[0])
-        print(self.challenge[1])
-        print(self.steps[0])
-        print(self.steps[1])
-        print(self.steps[2])
-        print(self.sessions)
-        print("**************************\n")
-
-    # def removeJob(self, root):
-    #     self.company = "REMOVED"
-    #     self.jobTitle = "REMOVED"
-    #     self.location = "REMOVED"
-    #     self.address = ["REMOVED", "REMOVED"]
-    #     self.link = "REMOVED"
-    #     self.path = "REMOVED"
-    #     print("Job Removed")
-    #     root.destroy()
-
     def makeform(self):
-        fields = ['Project', 'Challenge:', '\ta)', '\tb)',
-                  'Steps:', '\t1.', '\t2.', '\t3.', 'Sessions']
-        text = [self.project, None, self.challenge[0], self.challenge[1],
-                None, self.steps[0], self.steps[1], self.steps[2],
-                self.sessions]
-        root = Tk()
-        entries = []
-        for f, t in zip(fields, text):
-            row = Frame(root)
-            lab = Label(row, width=15, text=f, anchor='w')
-            if t is not None:
-                ent = Entry(row, width=45)
-                ent.insert(END, t)
-            row.pack(side=TOP, fill=X, padx=5, pady=5)
-            lab.pack(side=LEFT)
-            ent.pack(side=RIGHT, expand=YES, fill=X)
-            entries.append((f, ent))
+        self.title('Pomodoro')
+        # self.geometry('{}x{}'.format(300, 300))
 
-        ents = entries
-        ents[0][1].focus_set()
+        self.projEnt = EntryRow(self, 'Project')
+        self.chalEnt[0] = EntryRow(self, 'Challenge:\t    a)')
+        self.chalEnt[1] = EntryRow(self, '\t    b)')
+        self.stepEnt[0] = EntryRow(self, 'Steps:\t    1.')
+        self.stepEnt[1] = EntryRow(self, '\t    2.')
+        self.stepEnt[2] = EntryRow(self, '\t    3.')
+        self.sessEnt = EntryRow(self, 'Sessions')
+
+        self.projEnt.ent.focus_set()
 
         # Task type radio button
-        self.type = StringVar()
+        self.type = tk.StringVar()
         self.type.set('task')
-        Label(root, text="Session Type",
-              justify=LEFT, anchor='w').pack(side=LEFT, fill=X, padx=5, pady=5)
-        Radiobutton(root, text="Task", padx=20, variable=self.type,
-                    value='task').pack(anchor=W, side=LEFT)
-        Radiobutton(root, text="Learn", padx=20, variable=self.type,
-                    value='learn').pack(anchor=W, side=LEFT)
+        tk.Label(self, text="Session Type", justify=tk.LEFT,
+                 anchor='w').pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        tk.Radiobutton(self, text="Task", padx=20, variable=self.type,
+                       value='task').pack(anchor=tk.W, side=tk.LEFT)
+        tk.Radiobutton(self, text="Learn", padx=20, variable=self.type,
+                       value='learn').pack(anchor=tk.W, side=tk.LEFT)
 
-        root.bind('<Return>', (lambda event, e=ents: self.fetch(e, root)))
         # Button to close window
-        enterButton = Button(root, text='Enter', command=(
-            lambda e=ents: self.fetch(e, root)))
-        enterButton.pack(side=RIGHT, padx=5, pady=5)
+        self.enterBtn = tk.Button(self, text='Enter')
+        self.enterBtn.pack(side=tk.RIGHT, padx=5, pady=5)
 
-        quitButton = Button(root, text='Quit', command=root.quit)
-        quitButton.pack(side=RIGHT, padx=5, pady=5)
-        # Button to enter info. Same as return key
-        # # Button to remove jobs
-        # rmvjob = Button(
-        #     root, text='Remove', command=lambda r=root: self.removeJob(root))
-        # rmvjob.pack(side=LEFT, padx=5, pady=5)
-        root.mainloop()
-
-    # def loadForm(self):
+        self.quitBtn = tk.Button(self, text='Quit')
+        self.quitBtn.pack(side=tk.RIGHT, padx=5, pady=5)
+        self.withdraw()
 
 
 class TaskForm(object):
@@ -247,29 +153,17 @@ class TaskForm(object):
         ents[7][1].focus_set()
         root.bind('<Return>', (lambda event, e=ents: self.fetch(e, root)))
         # Button to close window
-        b3 = Button(root, text='Quit', command=root.quit)
+        b3 = tk.Button(root, text='Quit', command=root.quit)
         b3.pack(side=LEFT, padx=5, pady=5)
         # Button to enter info. Same as return key
-        b1 = Button(root, text='Enter', command=(
+        b1 = tk.Button(root, text='Enter', command=(
             lambda e=ents: self.fetch(e, root)))
         b1.pack(side=RIGHT, padx=5, pady=5)
         # # Button to remove jobs
-        # rmvjob = Button(
+        # rmvjob = tk.Button(
         #     root, text='Remove', command=lambda r=root: self.removeJob(root))
         # rmvjob.pack(side=LEFT, padx=5, pady=5)
         root.mainloop()
-
-
-class MyText(Text):
-    def __init__(self, master, **kw):
-        Text.__init__(self, master, kw)
-        # self.bind("<Return>", lambda e: None)
-        # self.bind("<Tab>", self.focus_next_window)
-        # self.bind("<Control-Return>", lambda e: '\n')
-
-    def focus_next_window(self, event):
-        event.widget.tk_focusNext().focus()
-        return("break")
 
 
 class LearnForm(object):
@@ -362,113 +256,122 @@ class LearnForm(object):
         ents[7][1].focus_set()
         root.bind('<Return>', (lambda event, e=ents: self.fetch(e, root)))
         # Button to close window
-        b3 = Button(root, text='Quit', command=root.quit)
+        b3 = tk.Button(root, text='Quit', command=root.quit)
         b3.pack(side=LEFT, padx=5, pady=5)
         # Button to enter info. Same as return key
-        b1 = Button(root, text='Enter', command=(
+        b1 = tk.Button(root, text='Enter', command=(
             lambda e=ents: self.fetch(e, root)))
         b1.pack(side=RIGHT, padx=5, pady=5)
         # # Button to remove jobs
-        # rmvjob = Button(
+        # rmvjob = tk.Button(
         #     root, text='Remove', command=lambda r=root: self.removeJob(root))
         # rmvjob.pack(side=LEFT, padx=5, pady=5)
         root.mainloop()
 
 
-class MenuForm(object):
-    """docstring for ClassName"""
-
+class Settings(tk.Toplevel):
     def __init__(self):
+        self.dir = '/home/brad/Projects/Python/pomodoro/pomodoro'
+        self.time = 25
+        self.shortBreak = 5
+        self.longBreak = 20
         self.makeform()
 
+    def saveSettings(self):
+        print(vars(self))
+        db = TinyDB('settings.json')
+        db.insert(vars(self))
+
     def fetch(self, entries, root):
-        # print(type(root))
-        # print(type(entries))
-        for entry in entries:
-            if entry[0] == 'Project':
-                self.project = entry[1].get()
-        root.destroy()
-
-    def addGoalForm(self):
-        f = GoalForm()
-
-    def selectProject(self, root):
-        p = self.mylist.get(ACTIVE)
-        print(p)
-        root.destroy()
-        f = GoalForm(p)
+            # print(type(root))
+            # print(type(entries))
+            for entry in entries:
+                if entry[0] == 'Time':
+                    self.time = entry[1].get()
+                elif entry[0] == 'Short Break':
+                    self.shortBreak = entry[1].get()
+                elif entry[0] == 'Long Break':
+                    self.longBreak = entry[1].get()
+            # self.saveSettings()
+            root.destroy()
 
     def makeform(self):
-        projects = ['Pomodoro', 'TempSensor', 'PoolPumpControl', 'FutureAuthoring', 'Website']
-        # project = 'Default'
+        fields = ['Session Time', 'Short Break', 'Long Breaks']
+        text = [self.time, self.shortBreak, self.longBreak]
         root = Tk()
-        root.title('Menu')
-        root.geometry('{}x{}'.format(300, 300))
+        entries = []
+        for f, t in zip(fields, text):
+            row = Frame(root)
+            lab = Label(row, width=15, text=f, anchor='w')
+            ent = Entry(row, width=45)
+            ent.insert(END, t)
+            row.pack(side=TOP, fill=X, padx=5, pady=5)
+            lab.pack(side=LEFT)
+            ent.pack(side=RIGHT, expand=YES, fill=X)
+            entries.append((f, ent))
 
-        scrollbar = Scrollbar(root)
+        ents = entries
+        ents[0][1].focus_set()
+        root.bind('<Return>', (lambda event, e=ents: self.fetch(e, root)))
+        # Button to close window
+        b3 = tk.Button(root, text='Quit', command=root.quit)
+        b3.pack(side=LEFT, padx=5, pady=5)
+        # Button to enter info. Same as return key
+        b1 = tk.Button(root, text='Enter', command=(
+            lambda e=ents: self.fetch(e, root)))
+        b1.pack(side=RIGHT, padx=5, pady=5)
+        # # Button to remove jobs
+        # rmvjob = tk.Button(
+        #     root, text='Remove', command=lambda r=root: self.removeJob(root))
+        # rmvjob.pack(side=LEFT, padx=5, pady=5)
+        root.mainloop()
 
-        self.mylist = Listbox(root, yscrollcommand=scrollbar.set)
-        for p in projects:
-            self.mylist.insert(END, p)
 
-        # print(type(mylist.get(ACTIVE)))
-        # print(mylist.get(ACTIVE))
-        # print(type(mylist.curselection()))
-        # print(mylist.curselection())
+class MenuForm(tk.Toplevel):
+    """docstring for ClassName"""
 
-        selectButton = Button(root, text='Start', command=(lambda :self.selectProject(root)))
-        selectButton.pack()
-        selectButton.place(bordermode=INSIDE,
-                           relx=0.05,
-                           x=-5,
-                           rely=0.1,
-                           relheight=.2,
-                           relwidth=.3,
-                           anchor=NW)
+    def __init__(self, master):
+        print('Menu Opened')
+        tk.Toplevel.__init__(self, master)
+        self.protocol('WM_DELETE_WINDOW', self.master.destroy)
+        self.makeform()
 
-        addButton = Button(root, text='New', command=self.addGoalForm)
-        addButton.pack()
-        addButton.place(bordermode=INSIDE,
-                        relx=0.05,
-                        x=-5,
-                        rely=0.3,
-                        relheight=.2,
-                        relwidth=.3,
-                        anchor=NW)
+    def selectProject(self, root):
+        p = self.mylist.get(tk.ACTIVE)
+        print('Need to send {0} to MainApp'.format(p))
+        self.withdraw()
 
-        removeButton = Button(root, text='Remove')
-        removeButton.pack()
-        removeButton.place(bordermode=INSIDE,
-                           relx=0.05,
-                           x=-5,
-                           rely=0.5,
-                           relheight=.2,
-                           relwidth=.3,
-                           anchor=NW)
+    def makeform(self):
+        self.title('Pomodoro')
+        self.geometry('{}x{}'.format(300, 300))
 
-        quitButton = Button(root, text='Quit', command=root.quit)
-        quitButton.pack()
-        quitButton.place(bordermode=INSIDE,
-                         relx=0.05,
-                         x=-5,
-                         rely=0.7,
-                         relheight=.2,
-                         relwidth=.3,
-                         anchor=NW)
+        leftFrame = tk.Frame(self)
+        leftFrame.pack(side=tk.LEFT, fill=tk.BOTH, padx=1, pady=5)
+        rightFrame = tk.Frame(self)
+        rightFrame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=1, pady=5)
 
-        scrollbar.pack()
-        scrollbar.place(bordermode=OUTSIDE, relheight=1, relx=1, anchor=NE)
-        self.mylist.pack()
-        self.mylist.place(bordermode=OUTSIDE,
-                          relx=1,
-                          x=-15,
-                          rely=0,
-                          relheight=1,
-                          relwidth=.6,
-                          anchor=NE)
+        scrollbar = tk.Scrollbar(rightFrame)
+
+        self.mylist = tk.Listbox(rightFrame, width=90,
+                                 yscrollcommand=scrollbar.set)
+
+        self.selectBtn = tk.Button(leftFrame, text='Start')
+        self.selectBtn.pack(fill=tk.X)
+
+        self.addBtn = tk.Button(leftFrame, text='New')
+        self.addBtn.pack(fill=tk.X)
+
+        self.removeBtn = tk.Button(leftFrame, text='Remove')
+        self.removeBtn.pack(fill=tk.X)
+
+        self.quitBtn = tk.Button(leftFrame, text='Quit', command=self.quit)
+        self.quitBtn.pack(fill=tk.X)
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.mylist.pack(side=tk.LEFT, fill=tk.BOTH)
 
         scrollbar.config(command=self.mylist.yview)
-        root.mainloop()
+        self.withdraw()
 
 
 class StatsForm(object):
@@ -517,26 +420,93 @@ class StatsForm(object):
         root.bind('<Return>', (lambda event: root.destroy()))
 
         # Button to enter info. Same as return key
-        continueBtn = Button(root, text='Continue', command=(
+        continueBtn = tk.Button(root, text='Continue', command=(
             lambda: self.addSession()))
         continueBtn.pack(side=RIGHT, padx=5, pady=5)
-        quitBtn = Button(root, text='Quit', command=root.quit)
+        quitBtn = tk.Button(root, text='Quit', command=root.quit)
         quitBtn.pack(side=LEFT, padx=5, pady=5)
 
         root.mainloop()
 
-goals = TinyDB('test_goals.json')
-sessions = TinyDB('test_sessions.json')
 
-settings = {}
-settings['project'] = 'Project'
-settings['sessions'] = 1
-settings['time'] = 25
-settings['shortBreak'] = 2
-settings['longBreak'] = 10
+class Pomodoro(object):
+    '''Controller class for the MVC implemntation'''
+    project = ''
+    challenge = ['', '']
+    steps = ['', '', '']
+    sessions = ''
+    pomType = ''
+    completed = ''
+    todo = ''
+    summary = ''
 
-# s = Settings()
-# print(s.toDict())
+    directory = '/home/brad/Projects/Python/pomodoro/pomodoro'
+    workTime = 25
+    shortBreak = 5
+    longBreak = 20
+
+    def __init__(self, root):
+        self.root = root
+        print('Main App Started')
+        # print(self.var)
+        self.menu = MenuForm(self.root)
+        self.menu.addBtn.config(command=lambda: self.newGoalForm())
+        self.menu.selectBtn.config(command=lambda: self.openGoalForm())
+
+        self.pom = GoalForm(self.root)
+        self.pom.protocol('WM_DELETE_WINDOW', self.openMenu)
+        self.pom.bind('<Return>', (lambda event: self.getGoal(self)))
+        self.pom.enterBtn.config(command=(lambda: self.getGoal(self)))
+        self.pom.quitBtn.config(command=self.openMenu)
+
+        print("Done Init")
+        self.openMenu()
+        projects = ['Pomodoro', 'TempSensor', 'PoolPumpControl', 'FutureAuthoring', 'Website']
+        for p in projects:
+            self.menu.mylist.insert(tk.END, p)
+
+    def openMenu(self):
+        self.menu.deiconify()
+        self.pom.withdraw()
+
+    def openGoalForm(self):
+        self.pom.projEnt.set(self.menu.mylist.get(tk.ACTIVE))
+        self.pom.sessEnt.set(1)
+        self.pom.chalEnt[0].ent.focus()
+        self.pom.deiconify()
+        self.menu.withdraw()
+
+    def newGoalForm(self):
+        self.pom.projEnt.set('')
+        self.pom.sessEnt.set(1)
+        self.pom.deiconify()
+        self.menu.withdraw()
+
+    def getGoal(self, root):
+        self.project = self.pom.projEnt.get()
+        self.challenge[0] = self.pom.chalEnt[0].get()
+        self.challenge[1] = self.pom.chalEnt[1].get()
+        self.steps[0] = self.pom.stepEnt[0].get()
+        self.steps[1] = self.pom.stepEnt[1].get()
+        self.steps[2] = self.pom.stepEnt[2].get()
+        self.sessions = self.pom.sessEnt.get()
+        self.pom.destroy()
+        self.root.destroy()
+
+if __name__ == '__main__':
+    root = tk.Tk()
+    root.withdraw()
+    app = Pomodoro(root)
+    root.mainloop()
+    print(app.project)
+    print(app.challenge[0])
+    print(app.challenge[1])
+    print(app.steps[0])
+    print(app.steps[1])
+    print(app.steps[2])
+    print(app.sessions)
+
+'''
 f = GoalForm()
 start = int(time.time())
 pom = {'project': f.project,
@@ -548,7 +518,6 @@ proj = goals.table(f.project)
 
 pomID = proj.insert(pom)
 
-# print(vars(f))
 if pom['type'] == 'task':
     l = TaskForm(pom)
     end = int(time.time())
@@ -565,13 +534,4 @@ else:
 proj.update(session, doc_ids=[pomID])
 
 StatsForm('This', 1)
-# l = LearnForm(settings)
-# m = MenuForm()
-# print(vars(f))
-# goals.insert(vars(f))
-
-
-
-# t = LearnForm(vars(f))
-# t.printEntries()
-# task.insert(vars(t))
+'''
