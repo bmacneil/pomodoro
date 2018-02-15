@@ -9,7 +9,7 @@ config = {
     'download_url': 'URL to download it',
     'author_email': 'My Email',
     'version': '0.1',
-    'install_requires': ['nose', 'pyyaml', 'schedule', 'tinydb', 'ujson'],
+    'install_requires': ['nose', 'schedule', 'tinydb', 'ujson'],
     'packages': ['pomodoro'],
     'scripts': [],
     'name': 'pomodoro'
