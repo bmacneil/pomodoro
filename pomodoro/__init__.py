@@ -4,11 +4,10 @@ import tkinter as tk
 from tinydb import *
 import time
 import schedule
-import pprint as pp
 
 
 class SessionTimer(object):
-    '''Main app class for the pomodoro program'''
+    '''Session Timer'''
 
     def __init__(self, project=None):
         if project is None:
@@ -250,6 +249,7 @@ class MenuForm(tk.Toplevel):
 
     def makeform(self):
         self.title('Pomodoro')
+
         self.geometry('{}x{}'.format(300, 300))
 
         leftFrame = tk.Frame(self)
@@ -325,13 +325,12 @@ class StatsForm(tk.Toplevel):
 class Pomodoro(object):
     '''Controller class for the MVC implemntation'''
 
-    directory = '/home/brad/Projects/Python/pomodoro/pomodoro'
+    directory = '/home/brad/Projects/Python/pomodoro/'
     workTime = 25
     shortBreak = 5
     longBreak = 20
     docKeys = ['challenge', 'completed', 'end', 'sessions',
                'start', 'steps', 'summary', 'todo', 'type']
-    p = pp.PrettyPrinter(indent=4)
 
     def __init__(self, root):
         self.completed = []
@@ -341,7 +340,9 @@ class Pomodoro(object):
         self.end = []
         self.sessions = 0
         self.root = root
-        self.db = TinyDB('pomodoro.json')
+        root.iconphoto(True, tk.PhotoImage(
+            file='/home/brad/Projects/Python/pomodoro/pomodoro/tomato-1.png'))
+        self.db = TinyDB('{0}pomodoro.json'.format(self.directory))
 
         self.menu = MenuForm(self.root)
         self.menu.addBtn.config(command=lambda: self.openGoalForm())
@@ -376,9 +377,9 @@ class Pomodoro(object):
         self.sett.focus_force()
 
     def getSettings(self):
-        self.workTime = self.sett.time.get()
-        self.shortBreak = self.sett.shortBreak.get()
-        self.longBreak = self.sett.longBreak.get()
+        self.workTime = int(self.sett.time.get())
+        self.shortBreak = int(self.sett.shortBreak.get())
+        self.longBreak = int(self.sett.longBreak.get())
         self.openMenu(self.sett)
 
     def openGoalForm(self, proj=None):
@@ -558,8 +559,12 @@ class Pomodoro(object):
         return schedule.CancelJob
 
 
-if __name__ == '__main__':
+def main():
     root = tk.Tk()
     root.withdraw()
     app = Pomodoro(root)
     root.mainloop()
+
+
+if __name__ == '__main__':
+    main()

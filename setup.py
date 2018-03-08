@@ -12,7 +12,8 @@ config = {
     'install_requires': ['nose', 'schedule', 'tinydb', 'ujson'],
     'packages': ['pomodoro'],
     'scripts': [],
-    'name': 'pomodoro'
+    'name': 'pomodoro',
+    'entry_points': {'console_scripts': ['pomodoro=pomodoro:main']}
 }
 
 setup(**config)
