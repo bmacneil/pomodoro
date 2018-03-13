@@ -68,6 +68,12 @@ class TextRow(tk.Frame):
         return self.ent.get("1.0", 'end-2c')
 
 
+# View - Base Class for all forms
+class Form(tk.Toplevel):
+    def __init__(self, master):
+        tk.Toplevel.__init__(self, master)
+
+
 class GoalForm(tk.Toplevel):
     """docstring for ClassName"""
 
@@ -220,7 +226,6 @@ class Settings(tk.Toplevel):
 
     def makeform(self):
         self.title('Settings')
-        # self.geometry('{}x{}'.format(300, 300))
         self.time = EntryRow(self, 'Time')
         self.shortBreak = EntryRow(self, 'Short Break')
         self.longBreak = EntryRow(self, 'Long Break')
@@ -322,6 +327,7 @@ class StatsForm(tk.Toplevel):
         self.quitBtn.pack(side=tk.LEFT, padx=5, pady=5)
 
 
+# Controller - Coordinates between model and view
 class Pomodoro(object):
     '''Controller class for the MVC implemntation'''
 
