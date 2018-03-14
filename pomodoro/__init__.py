@@ -368,8 +368,6 @@ class Pomodoro(object):
 
     def openSettings(self):
         self.sett = Settings(self.root)
-        self.sett.protocol('WM_DELETE_WINDOW', lambda: self.openMenu(self.sett))
-        self.sett.bind('<Return>', (lambda event: self.getSettings()))
         self.sett.enterBtn.config(command=(lambda: self.getSettings()))
         self.sett.quitBtn.config(command=(lambda: self.openMenu(self.sett)))
 
@@ -390,8 +388,6 @@ class Pomodoro(object):
 
     def openGoalForm(self, proj=None):
         self.pom = GoalForm(self.root)
-        self.pom.protocol('WM_DELETE_WINDOW', lambda: self.openMenu(self.pom))
-        self.pom.bind('<Return>', (lambda event: self.getGoal()))
         self.pom.enterBtn.config(command=(lambda: self.getGoal()))
         self.pom.quitBtn.config(command=(lambda: self.openMenu(self.pom)))
 
