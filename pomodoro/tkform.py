@@ -27,9 +27,9 @@ class LabelRow(Row):
                 text: (str): Right side label (default: {None})
         '''
 
-    def __init__(self, parent, label, text=None):
+    def __init__(self, parent, label, text=None, var=None):
         Row.__init__(self, parent, label)
-        self.lab = tk.Label(self, width=10, anchor='w', text=text)
+        self.lab = tk.Label(self, width=10, anchor='w', text=text, textvariable=var)
         self.lab.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
 
 
@@ -42,7 +42,7 @@ class EntryRow(Row):
             var: (StrinkVar): Tk StringVar to store entered text
         '''
 
-    def __init__(self, parent, label, var):
+    def __init__(self, parent, label, text=None, var=None):
         Row.__init__(self, parent, label)
         self.ent = tk.Entry(self, width=45, textvariable=var)
         self.ent.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
@@ -96,7 +96,7 @@ class TextRow(Row):
             <Ctrl-Tab>   : Switch focus to next widget
         '''
 
-    def __init__(self, parent, label, var):
+    def __init__(self, parent, label, text=None, var=None):
         Row.__init__(self, parent, label)
         self.ent = MyText(self, width=45, height=10)
         self.ent.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
@@ -104,6 +104,9 @@ class TextRow(Row):
     def get(self):
         ''' Get the formatted string from the Text widget'''
         return self.ent.get("1.0", 'end-2c')
+
+    def clear(self, data):
+        self.ent.delete('1.0', tk.END)
 
     def focus(self):
         '''Set cursor focus on the Text box widget'''
@@ -183,12 +186,12 @@ class Form(tk.Toplevel):
         self.btns['order'] = []
         self.rows = {}
         self.rows['order'] = []
-        self.center()
-        self.close()
+        self.withdraw()
 
     def open(self):
         '''Initilize and open form'''
         self.pack()
+        self.center()
         self.update()
         self.deiconify()
 
@@ -206,7 +209,7 @@ class Form(tk.Toplevel):
         for b in self.btns['order']:
             self.btns[b].pack(side=tk.RIGHT)
 
-    def bindKeys(self, formControlFunc):
+    def bindKeys(self, formControlFunc, quitFunc=None):
         ''' Bind the keyboard keys to control form
 
             Bind the return and ctrl-return key press event to formControlFunc
@@ -214,26 +217,39 @@ class Form(tk.Toplevel):
 
             Args:
                formControlFunc: (function): App form control function
+               quitFunc: (Function): Function that closes current form
+                                     returns to a main window (default: {None})
             '''
-        self.protocol('WM_DELETE_WINDOW', lambda: self.quit())
+        if quitFunc:
+            self.protocol('WM_DELETE_WINDOW', quitFunc)
+        else:
+            self.protocol('WM_DELETE_WINDOW', lambda: self.quit())
         self.bind('<Return>', formControlFunc)
         self.bind("<Control-Return>", formControlFunc)
 
-    def bindBtns(self, nextForm):
+    def bindBtns(self, cont, quit=None):
         ''' Bind buttons and keys to other form events
 
             Bind enter button and return key to close current form and
             open the next form
-            Bind the quit button and form close event to quit the app
+            Bind the quit button and form close event to quit the app or
+            advance to a pre-close form ie menu
 
             Args:
-                nextForm: (Form): The next form to be opened
+                cont: (Form): The next form to be opened
+                quit: (Form): Form to open after current
+                                  form is quit (default: {None})
             '''
-        self.addBtn('Enter', lambda: (self.close(), nextForm.open()))
-        self.addBtn('Quit', self.quit)
-        self.bindKeys(lambda e: (self.close(), nextForm.open()))
+        self.addBtn('Enter', lambda: (self.close(), cont()))
+        if quit:
+            self.addBtn('Quit', lambda: (self.close(), quit()))
+            self.bindKeys(lambda e: (self.close(), cont()),
+                          lambda: (self.close(), quit()))
+        else:
+            self.addBtn('Quit', self.quit)
+            self.bindKeys(lambda e: (self.close(), cont.open()))
 
-    def addRow(self, Row, text, var=None):
+    def addRow(self, Row, label, text=None, var=None, frame=None):
         ''' Add row object to form frame and attach Tk var
 
             Add Row object to form frame.
@@ -250,9 +266,11 @@ class Form(tk.Toplevel):
                 Returns Row object
                 Row Class Object
             '''
-        row = Row(self.formFr, text, var)
-        self.rows[text] = row
-        self.rows['order'].append(text)
+        if not frame:
+            frame = self.formFr
+        row = Row(frame, label, text, var)
+        self.rows[label] = row
+        self.rows['order'].append(label)
         return row
 
     def addBtn(self, text, cmd=None):
