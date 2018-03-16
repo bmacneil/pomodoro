@@ -1,123 +1,11 @@
 # ! /usr/bin/python3
 from tinydb import *
 from tkform import *
-from tuptest import *
+from pom import *
 import time
 from functools import partial
 import schedule
 import tkinter as tk
-from warnings import warn
-
-
-class PomOld(object):
-    '''
-    pom session data and settings
-
-    Pom object is a data class that coordinated the input data from user
-    forms with the TindDB database.
-
-    Attributes:
-        project: ([type]): project name
-        challenges: (list): StringVar list of challenges
-        steps: (list): StringVar list of steps
-        type: (StringVar): Session type: task or learn
-        onTask: (StringVar): On task for session: yes or no
-        done: (function): Completed during task session
-        todo: (StringVar): Left todo after a task session
-        summ: (StringVar): Summary of a learn session
-        startSec: (IntVar): Start time in seconds since epoch
-        endSec: (IntVar): End time in seconds since epoch
-        dones: (list): List of completed tasks
-        todos: (list): List of todos
-        summs: (list): List of learn session summaries
-        start: (list): List of session start times
-        end: (list): List of session end times
-        sessions: (int): Number of sessions
-        directory: (StringVar): path to the tinyDB directory
-        workTime: (IntVar): Session duration in minutes
-        shortBreak: (IntVar): Short break duration in minutes
-        longBreak: (IntVar): Long break duration in minutes
-    '''
-
-    def __init__(self, project=None):
-        '''
-        Pom object initilizer
-
-        Initilizes a pom object as either a new project or
-        as an existing project when the project name is an arg
-        Args:
-            project: (str): Project name for pom session (default: {None})
-        '''
-        self.project = tk.StringVar(value=project)
-        self.challenges = [tk.StringVar(), tk.StringVar()]
-        self.steps = [tk.StringVar(),
-                      tk.StringVar(),
-                      tk.StringVar()]
-        self.type = tk.StringVar(value='task')
-        self.onTask = tk.StringVar(value='yes')
-        self.done = tk.StringVar()
-        self.todo = tk.StringVar()
-        self.summ = tk.StringVar()
-        self.startSec = tk.IntVar(value=1518721735)
-        self.endSec = tk.IntVar(value=1518730947)
-        self.dones = []
-        self.todos = []
-        self.summs = []
-        self.start = []
-        self.end = []
-        self.sessions = 0
-
-        self.directory = tk.StringVar(
-            value='/home/brad/Projects/Python/pomodoro/')
-        self.workTime = tk.IntVar(value=25)
-        self.shortBreak = tk.IntVar(value=5)
-        self.longBreak = tk.IntVar(value=20)
-        # self.db = TinyDB('{0}pomodoro.json'.format(self.directory.get()))
-        # self.projects = self.db.tables()
-
-    def __repr__(self):
-        return self.__class__.__name__
-
-    def append(self):
-        '''
-        Append pom data to session lists
-
-        Appends the pom data
-        '''
-        self.dones.append(self.done.get())
-        self.todos.append(self.todo.get())
-        self.summs.append(self.summ.get())
-        self.start.append(self.startSec.get())
-        self.end.append(self.endSec.get())
-        self.done.set('')
-        self.todo.set('')
-        self.summ.set('')
-        self.startSec.set(0)
-        self.endSec.set(0)
-
-    def save(self):
-        print('Saving Pom state')
-
-    def stats(self):
-        print()
-
-    def print(self):
-        print('Project ', self.project.get())
-        print('Challenge:\t    a) ', self.challenges[0].get())
-        print('\t    b)', self.challenges[1].get())
-        print('Steps:\t    1. ', self.steps[0].get())
-        print('\t    2. ', self.steps[1].get())
-        print('\t    3. ', self.steps[2].get())
-        print('type ', self.type.get())
-        print(self.dones)
-        print(self.todos)
-        print(self.summs)
-        print(self.start)
-        print(self.end)
-        print('Settings')
-        print(self.workTime.get())
-        print(self.shortBreak.get())
-        print(self.longBreak.get())
 
 
 class GoalForm(Form):
@@ -128,18 +16,29 @@ class GoalForm(Form):
         self.title('Pomodoro')
         self.make(pom)
         self.withdraw()
+        self.focus = partial(self.getFocus, pom)
 
     def make(self, pom):
-        for attr in pom:
+        for attr in pom.iterGoals():
             self.addRow(EntryRow, attr.label, var=attr.var)
+
+        typeRb = RadioRow(self.btnsFr, pom.type.label)
+        typeRb.add('Task', 'task', pom.type.var)
+        typeRb.add('Learn', 'learn', pom.type.var)
+
+    def getFocus(self, pom):
         if pom.project.get() == '':
             self.rows[pom.project.label].focus()
         else:
             self.rows[pom.chalA.label].focus()
 
-        typeRb = RadioRow(self.btnsFr, pom.type.label)
-        typeRb.add('Task', 'task', pom.type.var)
-        typeRb.add('Learn', 'learn', pom.type.var)
+    def open(self):
+        '''Initilize and open form'''
+        self.focus()
+        self.pack()
+        self.center()
+        self.update()
+        self.deiconify()
 
 
 class TaskForm(Form):
@@ -154,7 +53,7 @@ class TaskForm(Form):
 
     def make(self, pom):
 
-        for attr in pom:
+        for attr in pom.iterGoals():
             self.addRow(LabelRow, attr.label, var=attr.var)
 
         self.learnFr = tk.Frame(self.formFr)
@@ -181,7 +80,7 @@ class TaskForm(Form):
             self.learnFr.pack(side=tk.TOP, fill=tk.X, pady=5)
             self.taskFr.pack_forget()
             self.rows['Summary'].focus()
-            self.formSize(600, 450)
+            self.formSize(600, 400)
         else:
             self.taskFr.pack(side=tk.TOP, fill=tk.X, pady=5)
             self.learnFr.pack_forget()
@@ -362,18 +261,17 @@ class Timer(object):
 
 class Controller(object):
     def __init__(self, root):
-        self.pom = PomOld()
-        self.pomNew = Pom()
         settings = Settings()
-        timer = Timer(self.pomNew.timeData, *settings.timer())
+        self.pom = Pom(settings.directory)
+        timer = Timer(self.pom.timeData, *settings.timer())
         root.iconphoto(True, tk.PhotoImage(file='tomato-1.png'))
 
-        goal = GoalForm(root, self.pomNew.form)
+        goal = GoalForm(root, self.pom.form)
         menu = MenuForm(root)
-        stats = StatsForm(root, self.pomNew)
-        task = TaskForm(root, self.pomNew.form)
+        stats = StatsForm(root, self.pom)
+        task = TaskForm(root, self.pom.form)
         settings = SettingsForm(root, settings)
-        overview = StatsForm(root, self.pomNew)
+        overview = StatsForm(root, self.pom)
 
         openMenu = partial(self.open, menu)
         openProj = partial(self.open, goal, menu)
@@ -413,13 +311,11 @@ class Controller(object):
                 menu: (Form): Menu form object. read active project (default: {None})
             '''
         if menu:
-            self.pomNew.form.project.set(menu.getActiveProject())
-            # print(menu.getActiveProject())
+            self.pom.form.project.set(menu.getActiveProject())
         try:
-            [print(x) for x in self.pomNew.projects]
-            form.setProjectList(self.pomNew.projects)
+            form.setProjectList(self.pom.projects)
         except AttributeError:
-            print('No Go')
+            pass
         form.open()
 
     def close(self, form, menu=None):
@@ -435,10 +331,10 @@ class Controller(object):
             '''
         form.close()
         if menu:
-            # self.pom.save()
-            self.pomNew.save()
-            self.pomNew.clear()
-            self.pomNew.print()
+            self.pom.save()
+            self.pom.print()
+            self.pom.clear()
+            menu.setProjectList(self.pom.projects)
             menu.open()
 
 
@@ -448,13 +344,6 @@ def main():
     app = Controller(root)
     root.mainloop()
 
-    # pom.print()
-    # # print(app.summText.get())
-
 
 if __name__ == '__main__':
-    # main()
-    root = tk.Tk()
-    root.withdraw()
-    app = Controller(root)
-    root.mainloop()
+    main()
