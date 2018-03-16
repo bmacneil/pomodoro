@@ -178,7 +178,7 @@ class Form(tk.Toplevel):
             '''
         tk.Toplevel.__init__(self, parent)
         self.title('Form')
-        self.formSize(600, 300)
+        self.formSize(600, 250)
         self.formFr = tk.Frame(self)
         self.btnsFr = tk.Frame(self)
         self.radioFr = tk.Frame(self.btnsFr)

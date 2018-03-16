@@ -72,8 +72,8 @@ class PomOld(object):
         self.workTime = tk.IntVar(value=25)
         self.shortBreak = tk.IntVar(value=5)
         self.longBreak = tk.IntVar(value=20)
-        self.db = TinyDB('{0}pomodoro.json'.format(self.directory.get()))
-        self.projects = self.db.tables()
+        # self.db = TinyDB('{0}pomodoro.json'.format(self.directory.get()))
+        # self.projects = self.db.tables()
 
     def __repr__(self):
         return self.__class__.__name__
@@ -124,9 +124,6 @@ class GoalForm(Form):
     """docstring for ClassName"""
 
     def __init__(self, parent, pom):
-        if repr(pom) == 'PomOld':
-            warn('{}: using old version of Pom()'.format(
-                self.__class__.__name__), DeprecationWarning)
         Form.__init__(self, parent)
         self.title('Pomodoro')
         self.make(pom)
@@ -141,7 +138,6 @@ class GoalForm(Form):
             self.rows[pom.chalA.label].focus()
 
         typeRb = RadioRow(self.btnsFr, pom.type.label)
-        print(type(pom.type.var))
         typeRb.add('Task', 'task', pom.type.var)
         typeRb.add('Learn', 'learn', pom.type.var)
 
@@ -150,9 +146,6 @@ class TaskForm(Form):
     """docstring for ClassName"""
 
     def __init__(self, parent, pom):
-        if repr(pom) == 'PomOld':
-            warn('{}: using old version of Pom()'.format(
-                self.__class__.__name__), DeprecationWarning)
         self.pom = pom
         # self.openFrame = partial(self.setFrame, newPom.type.var)
         Form.__init__(self, parent)
@@ -175,14 +168,16 @@ class TaskForm(Form):
         typeRb.add('Yes', 'yes', pom.onTask.var)
         typeRb.add('No', 'no', pom.onTask.var)
 
+    def addCallback(self, callback):
+            self.timerCallback = callback
+
     def setLabels(self):
         pass
         # self.rows['Project'].set(self.pom.project.get())
 
     def setFrame(self):
         self.setLabels()
-        print(self.pom.type.var.get())
-        if self.pom.type.var.get() == 'learn':
+        if self.pom.type.get() == 'learn':
             self.learnFr.pack(side=tk.TOP, fill=tk.X, pady=5)
             self.taskFr.pack_forget()
             self.rows['Summary'].focus()
@@ -201,8 +196,8 @@ class TaskForm(Form):
         self.deiconify()
 
     def close(self):
+        self.timerCallback()
         self.pom.summ.set(self.rows['Summary'].get())
-        print('Append pom here')
         self.pom.append()
         self.rows['Summary'].clear('')
         self.withdraw()
@@ -230,43 +225,36 @@ class StatsForm(Form):
     """docstring for ClassName"""
 
     def __init__(self, parent, pom):
-        if repr(pom) == 'PomOld':
-            warn('{}: using old version of Pom()'.format(
-                self.__class__.__name__), DeprecationWarning)
-        self.pom = pom
         Form.__init__(self, parent)
         self.title('Pomodoro - Summary')
         self.formSize(400, 200)
-        self.make(pom)
+        self.refresh = partial(self.make, pom)
         self.withdraw()
 
+    def open(self):
+        '''Initilize and open form'''
+        self.refresh()
+        self.pack()
+        self.center()
+        self.update()
+        self.deiconify()
+
     def close(self):
+        for child in self.formFr.winfo_children():
+            child.destroy()
         self.withdraw()
 
     def make(self, pom):
-        self.sec2HMS(pom.startSec.get(), pom.endSec.get())
-        self.getDuration(pom.startSec.get(), pom.endSec.get())
-        self.addRow(LabelRow, 'Project:', text=pom.project.get())
-        self.addRow(LabelRow, 'Sessions:', var=pom.sessions)
-        self.addRow(LabelRow, 'Start Time:', text=self.startTime)
-        self.addRow(LabelRow, 'End Time:', text=self.endTime)
-        self.addRow(LabelRow, 'Duration:', text=self.duration)
-
-    def sec2Days(self, sec):
-        '''TODO: Move this to Pom class'''
-        return sec // (60 * 60 * 24)
-
-    def sec2HMS(self, start, end):
-        '''TODO: Move this to Pom class'''
-        self.startTime = time.strftime("%H:%M:%S", time.localtime(start))
-        self.endTime = (time.strftime("%H:%M:%S", time.localtime(end)))
-
-    def getDuration(self, start, end):
-        '''TODO: Move this to Pom class'''
-        td = end - start
-        m, s = (td // 60, td % 60)
-        h, m = (m // 60, m % 60)
-        self.duration = '{0}:{1}:{2}'.format(h, m, s)
+        print('Made Stats Form')
+        pom.timeData.sec2HMS()
+        pom.timeData.getDuration()
+        print(pom.timeData.startTime)
+        print(pom.timeData.endTime)
+        self.addRow(LabelRow, 'Project:', var=pom.form.project.var)
+        self.addRow(LabelRow, 'Sessions:', var=pom.timeData.sessions)
+        self.addRow(LabelRow, 'Start Time:', text=pom.timeData.startTime)
+        self.addRow(LabelRow, 'End Time:', text=pom.timeData.endTime)
+        self.addRow(LabelRow, 'Duration:', text=pom.timeData.duration)
 
 
 class MenuForm(Form):
@@ -321,7 +309,8 @@ class MenuForm(Form):
 
 
 class Timer(object):
-    def __init__(self, workTime, shortBreak, longBreak):
+    def __init__(self, tData, workTime, shortBreak, longBreak):
+        self.tData = tData
         self.workTime = workTime
         self.shortBreak = shortBreak
         self.longBreak = longBreak
@@ -338,7 +327,6 @@ class Timer(object):
             self.startBreak()
 
     def close(self):
-        # print('Saving timer state')
         if self.state == 'work':
             self.state = 'break'
             self.callback['task']()
@@ -357,12 +345,19 @@ class Timer(object):
 
     def startWork(self):
         schedule.every(self.workTime.get()).seconds.do(schedule.CancelJob)
-        # self.start.append(int(time.time()))
+        self.tData.startSec.set(int(time.time()))
+        print('Work Started', self.tData.startSec.get())
         self.runPendingJobs()
 
     def startBreak(self):
         schedule.every(self.shortBreak.get()).seconds.do(schedule.CancelJob)
         self.runPendingJobs()
+
+    def stopWork(self):
+        self.tData.endSec.set(int(time.time()))
+        print('Work Stopped', self.tData.endSec.get())
+        self.tData.sessions.set(1 + self.tData.sessions.get())
+        self.tData.append()
 
 
 class Controller(object):
@@ -370,15 +365,15 @@ class Controller(object):
         self.pom = PomOld()
         self.pomNew = Pom()
         settings = Settings()
-        timer = Timer(*settings.timer())
+        timer = Timer(self.pomNew.timeData, *settings.timer())
         root.iconphoto(True, tk.PhotoImage(file='tomato-1.png'))
 
         goal = GoalForm(root, self.pomNew.form)
         menu = MenuForm(root)
-        stats = StatsForm(root, self.pom)
+        stats = StatsForm(root, self.pomNew)
         task = TaskForm(root, self.pomNew.form)
         settings = SettingsForm(root, settings)
-        overview = StatsForm(root, self.pom)
+        overview = StatsForm(root, self.pomNew)
 
         openMenu = partial(self.open, menu)
         openProj = partial(self.open, goal, menu)
@@ -396,6 +391,7 @@ class Controller(object):
 
         timer.addCallback('task', openTask)
         timer.addCallback('goal', openNew)
+        task.addCallback(timer.stopWork)
 
         menu.bindBtns(openProj, openNew, openSettings, openStats)
         goal.bindBtns(cont=openTimer, quit=closeGoal)
@@ -417,12 +413,13 @@ class Controller(object):
                 menu: (Form): Menu form object. read active project (default: {None})
             '''
         if menu:
-            self.pomNew.form.project.var.set(menu.getActiveProject())
-            print(menu.getActiveProject())
+            self.pomNew.form.project.set(menu.getActiveProject())
+            # print(menu.getActiveProject())
         try:
-            form.setProjectList(self.pom.projects)
+            [print(x) for x in self.pomNew.projects]
+            form.setProjectList(self.pomNew.projects)
         except AttributeError:
-            pass
+            print('No Go')
         form.open()
 
     def close(self, form, menu=None):
@@ -438,7 +435,7 @@ class Controller(object):
             '''
         form.close()
         if menu:
-            self.pom.save()
+            # self.pom.save()
             self.pomNew.save()
             self.pomNew.clear()
             self.pomNew.print()
