@@ -8,9 +8,6 @@ import schedule
 import tkinter as tk
 import logging
 import argparse
-# import trace
-
-# tracer = trace.Trace(count=False, trace=True)
 
 
 logging.basicConfig(level=logging.WARNING,
@@ -85,10 +82,6 @@ class TaskForm(Form):
 
     def addCallback(self, callback):
         self.timerCallback = callback
-
-    def setLabels(self):
-        pass
-        # self.rows['Project'].set(self.pom.project.get())
 
     def setFrame(self):
         self.setLabels()
@@ -171,7 +164,10 @@ class StatsForm(Form):
 
 
 class MenuForm(Form):
-    """docstring for ClassName"""
+    ''' Main menu form of Pom app with a project list loaded from db
+
+        [description]
+        '''
 
     def __init__(self, parent, projects=None):
         Form.__init__(self, parent)
@@ -229,6 +225,20 @@ class MenuForm(Form):
 
 
 class Timer(object):
+    ''' Tracks and records the work and break duration for each Pom
+
+        Starts a time for both work time and break time using the args for duration
+        Records the data in a SessionTime object
+        Manintains a state of the next timer session type
+
+        Args:
+            tData: (SessionTime): SessionTime object to record start and end time
+            workTime: (LabeledAttribute): work duration setting
+            shortBreak: (LabeledAttribute): short break duration setting
+            longBreak: (LabeledAttribute): long break duration setting
+            state:  (String): next timer session type (default: {'work'})
+        '''
+
     def __init__(self, tData, workTime, shortBreak, longBreak):
         self.tData = tData
         self.workTime = workTime
@@ -238,21 +248,26 @@ class Timer(object):
         self.callback = {}
 
     def __repr__(self):
+        ''' Return: Class name '''
         return self.__class__.__name__
 
     def resetState(self):
+        ''' Reset the timer session type to 'work' '''
         self.state = 'work'
 
     def addCallback(self, form, callback):
+        ''' Add a function to the callback dict using form name as the key '''
         self.callback[form] = callback
 
     def open(self):
+        ''' Open the timer and start a session based on state '''
         if self.state == 'work':
             self.startWork()
         else:
             self.startBreak()
 
     def close(self):
+        ''' Closer the timer and open the next form determined by state '''
         if self.state == 'work':
             self.state = 'break'
             self.callback['task']()
@@ -260,7 +275,8 @@ class Timer(object):
             self.state = 'work'
             self.callback['goal']()
 
-    def runPendingJobs(self):
+    def runTimer(self):
+        ''' Activate timer. Deactivate with Ctrl-C '''
         try:
             while schedule.jobs:
                 schedule.run_pending()
@@ -270,17 +286,20 @@ class Timer(object):
         self.close()
 
     def startWork(self):
-        schedule.every(self.workTime.get()).minutes.do(schedule.CancelJob)
+        ''' Load timer with work duration and run timer, save start time '''
         self.tData.startSec.set(int(time.time()))
+        schedule.every(self.workTime.get()).minutes.do(schedule.CancelJob)
         logging.info('Timer.startWork(): startSec {0}'.format(self.tData.startSec.get()))
-        self.runPendingJobs()
+        self.runTimer()
 
     def startBreak(self):
+        ''' Load timer with break duration and run timer '''
         schedule.every(self.shortBreak.get()).minutes.do(schedule.CancelJob)
         logging.info('Timer.startBreak(): shortBreak')
-        self.runPendingJobs()
+        self.runTimer()
 
     def stopWork(self):
+        ''' Callback function to stop timer, save end time and append tData to Pom '''
         self.tData.endSec.set(int(time.time()))
         logging.info('Timer.stopWork(): endSec {0}'.format(self.tData.endSec.get()))
         self.tData.sessions.set(1 + self.tData.sessions.get())
