@@ -2,6 +2,7 @@ import tkinter as tk
 from collections import namedtuple
 from tinydb import *
 import time
+import logging
 
 
 Attr = namedtuple('Attribute', ['label', 'var'])
@@ -30,7 +31,7 @@ class LabeledAttribute(object):
 
 
 class Settings(object):
-    def __init__(self, workTime=0, shortBreak=0, longBreak=20):
+    def __init__(self, workTime=25, shortBreak=5, longBreak=20):
         self.workTime = LabeledAttribute('Work Time', tk.IntVar(value=workTime))
         self.shortBreak = LabeledAttribute('Short Break', tk.IntVar(value=shortBreak))
         self.longBreak = LabeledAttribute('Long Break', tk.IntVar(value=longBreak))
@@ -89,6 +90,9 @@ class SessionTime(object):
         m, s = (td // 60, td % 60)
         h, m = (m // 60, m % 60)
         self.duration = '{0}:{1}:{2}'.format(h, m, s)
+
+    def formatDate(self, sec):
+        return time.strftime("%d-%b-%Y %H:%M:%S", time.localtime(sec))
 
 
 class Fields(object):
@@ -167,9 +171,13 @@ class Pom(object):
         self.form.onTask.set('yes')
 
         self.directory = dbDir
-
-        self.db = TinyDB('{0}DB_new.json'.format(self.directory.get()))
+        self.dbFile = 'DB_new.json'
+        self.openDB()
         self.updateProjectsList()
+
+    def openDB(self):
+        logging.info('Opening DB {}'.format(self.dbFile))
+        self.db = TinyDB('{0}{1}'.format(self.directory.get(), self.dbFile))
 
     def save(self):
         keys = ['challenge', 'steps', 'type', 'completed', 'todo', 'summary', 'onTask']
@@ -179,6 +187,8 @@ class Pom(object):
         entry['sessions'] = self.timeData.sessions.get()
         if entry['sessions'] > 0 and entry['end'] != []:
             print('Saving Pom state')
+            logging.info(self.logString())
+
             projTB = self.db.table(self.form.project.get())
             projTB.insert(entry)
             self.updateProjectsList()
@@ -199,5 +209,17 @@ class Pom(object):
     def print(self):
         print(self.form.project.get())
         [print(x) for x in self.form.iterDump()]
-        print('Start', self.timeData.start)
-        print('End', self.timeData.end)
+        print('Start: {}'.format(self.timeData.start))
+        print('End: {}'.format(self.timeData.end))
+
+    def logString(self):
+        string = '\n'.join([x.get() for x in self.form.iterGoals()])
+
+        string += '\n' + '{}'.format(self.form.dones)
+        string += '\n' + '{}'.format(self.form.todos)
+        string += '\n' + '{}'.format(self.form.summs)
+        string += '\n' + '{}'.format(self.form.onTasks)
+
+        string += '\n' + 'Start: {}'.format(self.timeData.start)
+        string += '\n' + 'End: {}'.format(self.timeData.end)
+        return string
