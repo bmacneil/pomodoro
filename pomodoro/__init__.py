@@ -1,11 +1,27 @@
 # ! /usr/bin/python3
 from tinydb import *
-from tkform import *
-from pom import *
+from pomodoro.tkform import *
+from pomodoro.pom import *
 import time
 from functools import partial
 import schedule
 import tkinter as tk
+import logging
+import argparse
+# import trace
+
+# tracer = trace.Trace(count=False, trace=True)
+
+
+logging.basicConfig(level=logging.WARNING,
+                    format=' %(asctime)s - %(levelname)s - %(message)s')
+
+ap = argparse.ArgumentParser()
+ap.add_argument('-d', '--debug', action='store_true', default=False, dest='debug',
+                help='Add a new project page or blog page.')
+ap.add_argument('-i', '--info', action='store_true', default=False, dest='info',
+                help='Update page contents. Enter [all] to update all pages')
+args = ap.parse_args()
 
 
 class GoalForm(Form):
@@ -68,7 +84,7 @@ class TaskForm(Form):
         typeRb.add('No', 'no', pom.onTask.var)
 
     def addCallback(self, callback):
-            self.timerCallback = callback
+        self.timerCallback = callback
 
     def setLabels(self):
         pass
@@ -96,6 +112,7 @@ class TaskForm(Form):
 
     def close(self):
         self.timerCallback()
+        logging.debug('TaskForm.close(): Timer Callback called')
         self.pom.summ.set(self.rows['Summary'].get())
         self.pom.append()
         self.rows['Summary'].clear('')
@@ -144,11 +161,8 @@ class StatsForm(Form):
         self.withdraw()
 
     def make(self, pom):
-        print('Made Stats Form')
         pom.timeData.sec2HMS()
         pom.timeData.getDuration()
-        print(pom.timeData.startTime)
-        print(pom.timeData.endTime)
         self.addRow(LabelRow, 'Project:', var=pom.form.project.var)
         self.addRow(LabelRow, 'Sessions:', var=pom.timeData.sessions)
         self.addRow(LabelRow, 'Start Time:', text=pom.timeData.startTime)
@@ -161,7 +175,7 @@ class MenuForm(Form):
 
     def __init__(self, parent, projects=None):
         Form.__init__(self, parent)
-        self.title('Pomodoro - Task')
+        self.title('Pomodoro - Menu')
         self.formSize(300, 300)
         self.make()
         self.withdraw()
@@ -173,6 +187,13 @@ class MenuForm(Form):
         self.mylist.delete(0, tk.END)
         for p in projects:
             self.mylist.insert(tk.END, p)
+
+    def addCallback(self, callback):
+        self.timerCallback = callback
+
+    def open(self):
+        self.timerCallback()
+        super().open()
 
     def make(self):
         self.scrollbar = tk.Scrollbar(self.formFr)
@@ -216,6 +237,12 @@ class Timer(object):
         self.state = 'work'
         self.callback = {}
 
+    def __repr__(self):
+        return self.__class__.__name__
+
+    def resetState(self):
+        self.state = 'work'
+
     def addCallback(self, form, callback):
         self.callback[form] = callback
 
@@ -243,18 +270,19 @@ class Timer(object):
         self.close()
 
     def startWork(self):
-        schedule.every(self.workTime.get()).seconds.do(schedule.CancelJob)
+        schedule.every(self.workTime.get()).minutes.do(schedule.CancelJob)
         self.tData.startSec.set(int(time.time()))
-        print('Work Started', self.tData.startSec.get())
+        logging.info('Timer.startWork(): startSec {0}'.format(self.tData.startSec.get()))
         self.runPendingJobs()
 
     def startBreak(self):
-        schedule.every(self.shortBreak.get()).seconds.do(schedule.CancelJob)
+        schedule.every(self.shortBreak.get()).minutes.do(schedule.CancelJob)
+        logging.info('Timer.startBreak(): shortBreak')
         self.runPendingJobs()
 
     def stopWork(self):
         self.tData.endSec.set(int(time.time()))
-        print('Work Stopped', self.tData.endSec.get())
+        logging.info('Timer.stopWork(): endSec {0}'.format(self.tData.endSec.get()))
         self.tData.sessions.set(1 + self.tData.sessions.get())
         self.tData.append()
 
@@ -264,7 +292,8 @@ class Controller(object):
         settings = Settings()
         self.pom = Pom(settings.directory)
         timer = Timer(self.pom.timeData, *settings.timer())
-        root.iconphoto(True, tk.PhotoImage(file='tomato-1.png'))
+        root.iconphoto(True, tk.PhotoImage(
+            file='/home/brad/Projects/Python/pomodoro/pomodoro/tomato.png'))
 
         goal = GoalForm(root, self.pom.form)
         menu = MenuForm(root)
@@ -282,14 +311,15 @@ class Controller(object):
         openSettings = partial(self.open, settings)
         openOverview = partial(self.open, overview)
 
-        closeGoal = partial(self.close, goal, menu)
-        closeTask = partial(self.close, task, menu)
-        closeOverview = partial(self.close, overview, menu)
-        closeSettings = partial(self.close, settings, menu)
+        closeGoal = partial(self.close, goal, openMenu)
+        closeTask = partial(self.close, task, openMenu)
+        closeOverview = partial(self.close, overview, openMenu)
+        closeSettings = partial(self.close, settings, openMenu)
 
         timer.addCallback('task', openTask)
         timer.addCallback('goal', openNew)
         task.addCallback(timer.stopWork)
+        menu.addCallback(timer.resetState)
 
         menu.bindBtns(openProj, openNew, openSettings, openStats)
         goal.bindBtns(cont=openTimer, quit=closeGoal)
@@ -310,7 +340,11 @@ class Controller(object):
                 form: (Form): Next form object to open
                 menu: (Form): Menu form object. read active project (default: {None})
             '''
+        logging.debug('open(): form: {0} menu: {1}'.format(repr(form), menu))
+        if repr(form) == 'Timer':
+            logging.debug('Timer State - {0}'.format(form.state))
         if menu:
+            menu.setProjectList(self.pom.projects)
             self.pom.form.project.set(menu.getActiveProject())
         try:
             form.setProjectList(self.pom.projects)
@@ -326,22 +360,35 @@ class Controller(object):
             If menu is the current form close the app
 
             Args:
-                form: (Form): Form object that is currently open
+                form: (Form): Form object that is currentlcloseTasky open
                 menu: (Form): Menu form object. If None close app (default: {None})
             '''
+        logging.debug('close(): form: {0} menu: {1}'.format(repr(form), menu.__class__.__name__))
         form.close()
         if menu:
             self.pom.save()
-            self.pom.print()
             self.pom.clear()
-            menu.setProjectList(self.pom.projects)
-            menu.open()
+            menu()
 
 
 def main():
     root = tk.Tk()
     root.withdraw()
     app = Controller(root)
+    if args.debug:
+        print('[DEBUG] - Opening Pomodoro')
+        logging.getLogger().setLevel(logging.DEBUG)
+        app.pom.dbFile = 'DB_test.json'
+        app.pom.openDB()
+        print('Using: {}'.format(app.pom.dbFile))
+    elif args.info:
+        print('[INFO] - Opening Pomodoro')
+        logging.getLogger().setLevel(logging.INFO)
+    else:
+        print("Opening Pomodoro")
+
+    logging.info('INFO messages on')
+    logging.debug('DEBUG messages on')
     root.mainloop()
 
 
