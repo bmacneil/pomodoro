@@ -1,4 +1,5 @@
 import tkinter as tk
+import logging
 
 
 class Row(tk.Frame):
@@ -188,6 +189,9 @@ class Form(tk.Toplevel):
         self.rows['order'] = []
         self.withdraw()
 
+    def __repr__(self):
+        return self.__class__.__name__
+
     def open(self):
         '''Initilize and open form'''
         self.pack()
@@ -244,7 +248,7 @@ class Form(tk.Toplevel):
         if quit:
             self.addBtn('Quit', lambda: (self.close(), quit()))
             self.bindKeys(lambda e: (self.close(), cont()),
-                          lambda: (self.close(), quit()))
+                          lambda: (quit()))
         else:
             self.addBtn('Quit', self.quit)
             self.bindKeys(lambda e: (self.close(), cont.open()))
