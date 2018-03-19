@@ -4,3 +4,4 @@ docs/
 venv/
 tests/
 *.json
+*.ico
