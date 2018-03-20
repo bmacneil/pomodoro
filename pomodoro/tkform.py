@@ -231,7 +231,7 @@ class Form(tk.Toplevel):
         self.bind('<Return>', formControlFunc)
         self.bind("<Control-Return>", formControlFunc)
 
-    def bindBtns(self, cont, quit=None):
+    def bindBtns(self, enter, quit=None):
         ''' Bind buttons and keys to other form events
 
             Bind enter button and return key to close current form and
@@ -240,18 +240,18 @@ class Form(tk.Toplevel):
             advance to a pre-close form ie menu
 
             Args:
-                cont: (Form): The next form to be opened
+                enter: (Form): The next form to be opened
                 quit: (Form): Form to open after current
                                   form is quit (default: {None})
             '''
-        self.addBtn('Enter', lambda: (self.close(), cont()))
+        self.addBtn('Enter', lambda: (self.close(), enter()))
         if quit:
             self.addBtn('Quit', lambda: (self.close(), quit()))
-            self.bindKeys(lambda e: (self.close(), cont()),
+            self.bindKeys(lambda e: (self.close(), enter()),
                           lambda: (quit()))
         else:
             self.addBtn('Quit', self.quit)
-            self.bindKeys(lambda e: (self.close(), cont.open()))
+            self.bindKeys(lambda e: (self.close(), enter.open()))
 
     def addRow(self, Row, label, text=None, var=None, frame=None):
         ''' Add row object to form frame and attach Tk var
