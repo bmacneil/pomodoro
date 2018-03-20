@@ -84,7 +84,6 @@ class TaskForm(Form):
         self.timerCallback = callback
 
     def setFrame(self):
-        self.setLabels()
         if self.pom.type.get() == 'learn':
             self.learnFr.pack(side=tk.TOP, fill=tk.X, pady=5)
             self.taskFr.pack_forget()
@@ -130,8 +129,40 @@ class SettingsForm(Form):
             self.addRow(EntryRow, label, var=var)
 
 
+class SummaryForm(Form):
+
+    def __init__(self, parent, pom):
+        Form.__init__(self, parent)
+        self.title('Pomodoro - Summary')
+        self.formSize(400, 200)
+        self.refresh = partial(self.make, pom)
+        self.withdraw()
+
+    def open(self):
+        '''Initilize and open form'''
+        self.refresh()
+        self.pack()
+        self.center()
+        self.update()
+        self.deiconify()
+
+    def close(self):
+        for child in self.formFr.winfo_children():
+            child.destroy()
+        self.withdraw()
+
+    def make(self, pom):
+        pom.timeData.sec2HMS()
+        pom.timeData.getDuration()
+        self.addRow(LabelRow, 'Project:', var=pom.form.project.var)
+        self.addRow(LabelRow, 'Sessions:', var=pom.timeData.sessions)
+        self.addRow(LabelRow, 'Start Time:', text=pom.timeData.startTime)
+        self.addRow(LabelRow, 'End Time:', text=pom.timeData.endTime)
+        self.addRow(LabelRow, 'Duration:', text=pom.timeData.duration)
+
+
 class StatsForm(Form):
-    """docstring for ClassName"""
+
 
     def __init__(self, parent, pom):
         Form.__init__(self, parent)
@@ -166,55 +197,70 @@ class StatsForm(Form):
 class MenuForm(Form):
     ''' Main menu form of Pom app with a project list loaded from db
 
-        [description]
+        The menu form is the main form that controls the flow between
+        forms. It consists of several buttons and a list of projects.
+        Selecting a project from the list will add a Pom to the project
         '''
 
     def __init__(self, parent, projects=None):
+        ''' Initilize the form and hide it until opened '''
         Form.__init__(self, parent)
         self.title('Pomodoro - Menu')
         self.formSize(300, 300)
         self.make()
         self.withdraw()
 
-    def getActiveProject(self):
-        return self.mylist.get(tk.ACTIVE)
-
-    def setProjectList(self, projects):
-        self.mylist.delete(0, tk.END)
-        for p in projects:
-            self.mylist.insert(tk.END, p)
-
-    def addCallback(self, callback):
-        self.timerCallback = callback
-
     def open(self):
+        ''' Open the menu form and reset the timer state '''
         self.timerCallback()
         super().open()
 
+    def getActiveProject(self):
+        ''' Return the selected project from the project list '''
+        return self.projList.get(tk.ACTIVE)
+
+    def setProjectList(self, projects):
+        ''' Populate the project list with given list of strings from database
+
+            Args:
+                projects: (List): List of project name strings from database
+            '''
+        self.projList.delete(0, tk.END)
+        for p in projects:
+            self.projList.insert(tk.END, p)
+
+    def addCallback(self, callback):
+        '''  Add a callback function
+
+            Args:
+                callback: (function): callback function
+            '''
+        self.timerCallback = callback
+
     def make(self):
+        ''' Create the listbox and scroll bar widgets in the main frame '''
         self.scrollbar = tk.Scrollbar(self.formFr)
-        self.mylist = tk.Listbox(self.formFr, width=30, height=20,
-                                 yscrollcommand=self.scrollbar.set)
-        self.scrollbar.config(command=self.mylist.yview)
+        self.projList = tk.Listbox(self.formFr, width=30, height=20,
+                                   yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.projList.yview)
 
     def pack(self):
-        '''Pack all form frames'''
+        '''Pack all form frames and pack buttons in order '''
         self.btnsFr.pack(side=tk.LEFT, fill=tk.BOTH, padx=1, pady=5)
         for b in self.btns['order']:
             self.btns[b].pack(fill=tk.X)
         self.formFr.pack(side=tk.RIGHT, fill=tk.BOTH, padx=1, pady=5)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.mylist.pack(side=tk.LEFT, fill=tk.BOTH)
+        self.projList.pack(side=tk.LEFT, fill=tk.BOTH)
 
     def bindBtns(self, openProj, openNew, openSettings, openStats):
-        ''' Bind buttons and keys to other form events
-
-            Bind enter button and return key to close current form and
-            open the next form
-            Bind the quit button and form close event to quit the app
+        ''' Bind buttons and keys to the form control event and close menu
 
             Args:
-                nextForm: (Form): The next form to be opened
+                openProj: (function): Start button event to open existing project
+                openNew: (function): New button event to open new project
+                openSettings: (function): Settings button event to open settings
+                openStats: (function): Stats button event to open stats form
             '''
         self.addBtn('Start', lambda: (self.close(), openProj()))
         self.addBtn('New', lambda: (self.close(), openNew()))
@@ -307,6 +353,13 @@ class Timer(object):
 
 
 class Controller(object):
+    ''' Controller class that coordinates objects for the main app
+
+        The controller class is the top level object that instantiates the
+        Setting, Timer, and Form classes. The Controller manages the flow control
+        functions  and callback functions that progress the app through different states
+        '''
+
     def __init__(self, root):
         settings = Settings()
         self.pom = Pom(settings.directory)
@@ -319,8 +372,11 @@ class Controller(object):
         stats = StatsForm(root, self.pom)
         task = TaskForm(root, self.pom.form)
         settings = SettingsForm(root, settings)
-        overview = StatsForm(root, self.pom)
+        overview = SummaryForm(root, self.pom)
 
+        # Partial functions are used to decouple the controller and
+        # the forms. This helps with state transition clarity
+        # Open form partial functions
         openMenu = partial(self.open, menu)
         openProj = partial(self.open, goal, menu)
         openNew = partial(self.open, goal)
@@ -329,23 +385,25 @@ class Controller(object):
         openTask = partial(self.open, task)
         openSettings = partial(self.open, settings)
         openOverview = partial(self.open, overview)
-
+        # Close form partial functions
         closeGoal = partial(self.close, goal, openMenu)
         closeTask = partial(self.close, task, openMenu)
         closeOverview = partial(self.close, overview, openMenu)
         closeSettings = partial(self.close, settings, openMenu)
-
+        # Timer callback functions manage Transition to and from timer
         timer.addCallback('task', openTask)
         timer.addCallback('goal', openNew)
+        # Form callback functions to manage the timer state
         task.addCallback(timer.stopWork)
         menu.addCallback(timer.resetState)
-
+        # Button bindings to manage form transition
         menu.bindBtns(openProj, openNew, openSettings, openStats)
-        goal.bindBtns(cont=openTimer, quit=closeGoal)
-        task.bindBtns(cont=openOverview, quit=closeTask)
-        overview.bindBtns(cont=openTimer, quit=closeOverview)
-        settings.bindBtns(cont=closeSettings, quit=openMenu)
-        stats.bindBtns(cont=openProj, quit=openMenu)
+        goal.bindBtns(enter=openTimer, quit=closeGoal)
+        task.bindBtns(enter=openOverview, quit=closeTask)
+        overview.bindBtns(enter=openTimer, quit=closeOverview)
+        settings.bindBtns(enter=closeSettings, quit=openMenu)
+        stats.bindBtns(enter=openProj, quit=openMenu)
+
         self.open(menu)
 
     def open(self, form, menu=None):
@@ -371,7 +429,7 @@ class Controller(object):
             pass
         form.open()
 
-    def close(self, form, menu=None):
+    def close(self, form, openMenu=None):
         ''' Manage form close event based off current form
 
             Store current state of Pom data and write to database
@@ -379,35 +437,39 @@ class Controller(object):
             If menu is the current form close the app
 
             Args:
-                form: (Form): Form object that is currentlcloseTasky open
-                menu: (Form): Menu form object. If None close app (default: {None})
+                form: (Form): active form to be closed
+                openMenu: (Function): Function to open menu form
+                                    if None close app (default: {None})
             '''
-        logging.debug('close(): form: {0} menu: {1}'.format(repr(form), menu.__class__.__name__))
+        if openMenu:
+            logging.debug('close(): form: {0} Open menu: True'.format(repr(form)))
+        else:
+            logging.debug('close(): form: {0} Open menu: False'.format(repr(form)))
         form.close()
-        if menu:
+        if openMenu:
             self.pom.save()
             self.pom.clear()
-            menu()
+            openMenu()
 
 
 def main():
     root = tk.Tk()
     root.withdraw()
     app = Controller(root)
+
     if args.debug:
         print('[DEBUG] - Opening Pomodoro')
         logging.getLogger().setLevel(logging.DEBUG)
         app.pom.dbFile = 'DB_test.json'
         app.pom.openDB()
-        print('Using: {}'.format(app.pom.dbFile))
     elif args.info:
         print('[INFO] - Opening Pomodoro')
         logging.getLogger().setLevel(logging.INFO)
     else:
         print("Opening Pomodoro")
 
-    logging.info('INFO messages on')
-    logging.debug('DEBUG messages on')
+    logging.info('Using: {}'.format(app.pom.dbFile))
+
     root.mainloop()
 
 
