@@ -89,7 +89,7 @@ class SessionTime(object):
         td = self.endSec.get() - self.startSec.get()
         m, s = (td // 60, td % 60)
         h, m = (m // 60, m % 60)
-        self.duration = '{0}:{1}:{2}'.format(h, m, s)
+        self.duration = '{0}:{1:02d}:{2:02d}'.format(h, m, s)
 
     def formatDate(self, sec):
         return time.strftime("%d-%b-%Y %H:%M:%S", time.localtime(sec))
