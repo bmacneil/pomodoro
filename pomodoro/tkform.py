@@ -246,7 +246,7 @@ class Form(tk.Toplevel):
             '''
         self.addBtn('Enter', lambda: (self.close(), enter()))
         if quit:
-            self.addBtn('Quit', lambda: (self.close(), quit()))
+            self.addBtn('Quit', lambda: (quit()))
             self.bindKeys(lambda e: (self.close(), enter()),
                           lambda: (quit()))
         else:

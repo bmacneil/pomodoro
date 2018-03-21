@@ -119,15 +119,18 @@ class TaskForm(Form):
         ''' Open task form and load the frame based on pom type '''
         self.openFrame()
         super().open()
+        logging.debug('TaskForm.open() end')
 
     def close(self):
         ''' Close TaskForm, stop timer, append Pom to session data in Pom object '''
+        logging.debug('TaskForm.close() called')
         self.timerCallback()
         logging.debug('TaskForm.close(): Timer Callback called')
         self.pom.summ.set(self.rows['Summary'].get())
         self.pom.append()
         self.rows['Summary'].clear('')
         self.withdraw()
+        logging.debug('TaskForm.close() end')
 
 
 class SettingsForm(Form):
@@ -459,9 +462,7 @@ class Controller(object):
         if repr(form) == 'Timer':
             logging.debug('Timer State - {0}'.format(form.state))
         if menu:
-            logging.debug('Project List: {}'.format(self.pom.projects))
             self.pom.form.project.set(menu.getActiveProject())
-            logging.debug('Active Project: {}'.format(self.pom.form.project.get()))
         try:
             form.setProjectList(self.pom.projects)
         except AttributeError:
