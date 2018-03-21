@@ -22,7 +22,14 @@ args = ap.parse_args()
 
 
 class GoalForm(Form):
-    """docstring for ClassName"""
+    ''' Form to enter what is what is to be completed for the session
+
+        Goal form made of entry forms for: project name, challenge and steps
+        Radio button to set pom type and recording method: Task or learn
+        Display form between Poms and edit the entries
+        Entries reset between sessions
+        Project name can be selected from menu at the start of a session
+        '''
 
     def __init__(self, parent, pom):
         Form.__init__(self, parent)
@@ -48,24 +55,28 @@ class GoalForm(Form):
     def open(self):
         '''Initilize and open form'''
         self.focus()
-        self.pack()
-        self.center()
-        self.update()
-        self.deiconify()
+        super().open()
 
 
 class TaskForm(Form):
-    """docstring for ClassName"""
+    ''' Form to enter either the task completed/todos or the learned summary
+
+        Display task form after Pom time expires.
+        End time is save in SessionTime object when task form is closed
+        Entry type is set in the Goal form at the beginging of the Pom
+        Entered data is stored to Pom object and saved to DB when quit
+        Record productivity with binary radio button
+        '''
 
     def __init__(self, parent, pom):
         self.pom = pom
-        # self.openFrame = partial(self.setFrame, newPom.type.var)
+        self.openFrame = partial(self.setFrame, pom.type)
         Form.__init__(self, parent)
         self.title('Pomodoro - Task')
         self.make(pom)
 
     def make(self, pom):
-
+        ''' Build the main frame with Pom goal labels and on task radio button '''
         for attr in pom.iterGoals():
             self.addRow(LabelRow, attr.label, var=attr.var)
 
@@ -81,10 +92,19 @@ class TaskForm(Form):
         typeRb.add('No', 'no', pom.onTask.var)
 
     def addCallback(self, callback):
+        ''' callback function th stop timer and record end time '''
         self.timerCallback = callback
 
-    def setFrame(self):
-        if self.pom.type.get() == 'learn':
+    def setFrame(self, pomType):
+        ''' Pack main frame entry depending on Pom type
+
+            If pom type is task, pack 2 entry widgets: completed and todo
+            If pom type is learn pack 1 MyText widgets
+
+            Args:
+                pomType: (tk.StringVar): type of pom, set with GoalForm radioButton
+            '''
+        if pomType.get() == 'learn':
             self.learnFr.pack(side=tk.TOP, fill=tk.X, pady=5)
             self.taskFr.pack_forget()
             self.rows['Summary'].focus()
@@ -96,13 +116,12 @@ class TaskForm(Form):
             self.formSize(600, 300)
 
     def open(self):
-        self.setFrame()
-        self.pack()
-        self.center()
-        self.update()
-        self.deiconify()
+        ''' Open task form and load the frame based on pom type '''
+        self.openFrame()
+        super().open()
 
     def close(self):
+        ''' Close TaskForm, stop timer, append Pom to session data in Pom object '''
         self.timerCallback()
         logging.debug('TaskForm.close(): Timer Callback called')
         self.pom.summ.set(self.rows['Summary'].get())
@@ -112,34 +131,41 @@ class TaskForm(Form):
 
 
 class SettingsForm(Form):
-    """docstring for ClassName"""
+    ''' From to adjust settings. Accessible from the menu '''
 
     def __init__(self, parent, settings):
         Form.__init__(self, parent)
         self.title('Pomodoro - Settings')
         self.formSize(400, 200)
         self.make(settings)
-        # self.withdraw()
-
-    def close(self):
-        self.withdraw()
 
     def make(self, settings):
+        ''' Add entry widgets for fields in Settings object '''
         for label, var in settings:
             self.addRow(EntryRow, label, var=var)
 
 
 class SummaryForm(Form):
+    ''' Form to display a summary of the completed Pom
+
+        Opened after each Pom to display relevent stats:
+            Project name
+            Number of poms in the current session
+            Start time  [HH:MM:SS]
+            End time    [HH:MM:SS]
+            Duration:   [H:MM:SS]
+        '''
 
     def __init__(self, parent, pom):
         Form.__init__(self, parent)
         self.title('Pomodoro - Summary')
         self.formSize(400, 200)
+        # partial function to allow controller to call make
         self.refresh = partial(self.make, pom)
         self.withdraw()
 
     def open(self):
-        '''Initilize and open form'''
+        '''Initilize and open form. Main fram rebuilt when opened '''
         self.refresh()
         self.pack()
         self.center()
@@ -147,11 +173,13 @@ class SummaryForm(Form):
         self.deiconify()
 
     def close(self):
+        ''' Close the form and destroy the children of the main frame '''
         for child in self.formFr.winfo_children():
             child.destroy()
         self.withdraw()
 
     def make(self, pom):
+        ''' Build the main frame contents '''
         pom.timeData.sec2HMS()
         pom.timeData.getDuration()
         self.addRow(LabelRow, 'Project:', var=pom.form.project.var)
@@ -179,7 +207,7 @@ class StatsForm(Form):
         self.withdraw()
 
     def open(self):
-        '''Initilize and open form'''
+        '''Initilize and open form. Main fram rebuilt when opened '''
         self.refresh()
         self.pack()
         self.center()
@@ -187,11 +215,13 @@ class StatsForm(Form):
         self.deiconify()
 
     def close(self):
+        ''' Close the form and destroy the children of the main frame '''
         for child in self.formFr.winfo_children():
             child.destroy()
         self.withdraw()
 
     def make(self, pom):
+        ''' Build the main frame contents '''
         pom.timeData.sec2HMS()
         pom.timeData.getDuration()
         self.addRow(LabelRow, 'Project:', var=pom.form.project.var)
