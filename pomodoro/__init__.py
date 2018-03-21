@@ -162,7 +162,14 @@ class SummaryForm(Form):
 
 
 class StatsForm(Form):
+    ''' The control form for statistic view of Pomodoro session data
 
+        This form is under construction and is currently sparse
+        TODO:
+            Breakdown by project
+            Breakdown by date (Today, yeserday, week, month)
+            Breakdown by session length
+        '''
 
     def __init__(self, parent, pom):
         Form.__init__(self, parent)
@@ -390,6 +397,7 @@ class Controller(object):
         closeTask = partial(self.close, task, openMenu)
         closeOverview = partial(self.close, overview, openMenu)
         closeSettings = partial(self.close, settings, openMenu)
+        closeStats = partial(self.close, stats, openMenu)
         # Timer callback functions manage Transition to and from timer
         timer.addCallback('task', openTask)
         timer.addCallback('goal', openNew)
@@ -402,7 +410,7 @@ class Controller(object):
         task.bindBtns(enter=openOverview, quit=closeTask)
         overview.bindBtns(enter=openTimer, quit=closeOverview)
         settings.bindBtns(enter=closeSettings, quit=openMenu)
-        stats.bindBtns(enter=openProj, quit=openMenu)
+        stats.bindBtns(enter=closeStats, quit=openMenu)
 
         self.open(menu)
 
@@ -421,8 +429,9 @@ class Controller(object):
         if repr(form) == 'Timer':
             logging.debug('Timer State - {0}'.format(form.state))
         if menu:
-            menu.setProjectList(self.pom.projects)
+            logging.debug('Project List: {}'.format(self.pom.projects))
             self.pom.form.project.set(menu.getActiveProject())
+            logging.debug('Active Project: {}'.format(self.pom.form.project.get()))
         try:
             form.setProjectList(self.pom.projects)
         except AttributeError:
