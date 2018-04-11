@@ -1,4 +1,4 @@
-# ! /usr/bin/python3
+#!/usr/bin/python3
 from tinydb import *
 from pomodoro.tkform import *
 from pomodoro.pom import *
@@ -8,6 +8,8 @@ import schedule
 import tkinter as tk
 import logging
 import argparse
+import os
+import sys
 
 
 logging.basicConfig(level=logging.WARNING,
@@ -15,9 +17,9 @@ logging.basicConfig(level=logging.WARNING,
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-d', '--debug', action='store_true', default=False, dest='debug',
-                help='Add a new project page or blog page.')
+                help='Set logging level to debug. Use test DB (DB_test.json).')
 ap.add_argument('-i', '--info', action='store_true', default=False, dest='info',
-                help='Update page contents. Enter [all] to update all pages')
+                help='Set logging level to info. Use default DB.')
 args = ap.parse_args()
 
 
@@ -405,8 +407,7 @@ class Controller(object):
         self.pom = Pom(settings.directory)
         timer = Timer(self.pom.timeData, *settings.timer())
         root.iconphoto(True, tk.PhotoImage(
-            file='/home/brad/Projects/Python/pomodoro/pomodoro/tomato.png'))
-
+            file=os.path.join(settings.directory.get(), 'pomodoro', 'tomato.png')))
         goal = GoalForm(root, self.pom.form)
         menu = MenuForm(root)
         stats = StatsForm(root, self.pom)
@@ -442,8 +443,8 @@ class Controller(object):
         goal.bindBtns(enter=openTimer, quit=closeGoal)
         task.bindBtns(enter=openOverview, quit=closeTask)
         overview.bindBtns(enter=openTimer, quit=closeOverview)
-        settings.bindBtns(enter=closeSettings, quit=openMenu)
-        stats.bindBtns(enter=closeStats, quit=openMenu)
+        settings.bindBtns(enter=closeSettings, quit=closeSettings)
+        stats.bindBtns(enter=closeStats, quit=closeStats)
 
         self.open(menu)
 

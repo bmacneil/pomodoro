@@ -3,6 +3,8 @@ from collections import namedtuple
 from tinydb import *
 import time
 import logging
+import os
+import sys
 
 
 Attr = namedtuple('Attribute', ['label', 'var'])
@@ -32,20 +34,31 @@ class LabeledAttribute(object):
 
 class Settings(object):
     def __init__(self, workTime=25, shortBreak=5, longBreak=20):
+        path = os.path.dirname(os.path.realpath(sys.path[0]))
         self.workTime = LabeledAttribute('Work Time', tk.IntVar(value=workTime))
         self.shortBreak = LabeledAttribute('Short Break', tk.IntVar(value=shortBreak))
         self.longBreak = LabeledAttribute('Long Break', tk.IntVar(value=longBreak))
-        self.directory = LabeledAttribute('Directory', tk.StringVar(
-            value='/home/brad/Projects/Python/pomodoro/'))
+        self.directory = LabeledAttribute('Directory', tk.StringVar(value=path))
+
+        if os.path.isfile(os.path.join(path, 'settings.json')):
+            tdb = TinyDB('{0}'.format(os.path.join(path, 'settings.json'))
+                         ).table().get(doc_id=1)
+            self.workTime.set(tdb['workTime'])
+            self.shortBreak.set(tdb['shortBreak'])
+            self.longBreak.set(tdb['longBreak'])
+            self.directory.set(tdb['directory'])
+        else:
+            tdb = TinyDB('{0}'.format(os.path.join(path, 'settings.json')))
+            print(path)
+            logging.debug(os.path.join(path, 'settings.json'))
+            logging.info({l: v.get() for l, v in vars(self).items()})
+            tdb.insert({l: v.get() for l, v in vars(self).items()})
 
     def __iter__(self):
         yield self.workTime
         yield self.shortBreak
         yield self.longBreak
         yield self.directory
-
-    def print(self):
-        [print(l, v.get()) for l, v in self]
 
     def timer(self):
         return (self.workTime, self.shortBreak, self.longBreak)
@@ -60,8 +73,8 @@ class SessionTime(object):
         self.start = []
         self.end = []
 
-    def print(self):
-        [print(l, v) for l, v in vars(self).values()]
+    # def print(self):
+    #     [print(l, v) for l, v in vars(self).values()]
 
     def __iter__(self):
         yield self.sessions
@@ -177,7 +190,7 @@ class Pom(object):
 
     def openDB(self):
         logging.info('Opening DB {}'.format(self.dbFile))
-        self.db = TinyDB('{0}{1}'.format(self.directory.get(), self.dbFile))
+        self.db = TinyDB('{0}'.format(os.path.join(self.directory.get(), self.dbFile)))
 
     def save(self):
         keys = ['challenge', 'steps', 'type', 'completed', 'todo', 'summary', 'onTask']
@@ -203,14 +216,14 @@ class Pom(object):
     def updateProjectsList(self):
         self.projects = self.db.tables()
 
-    def stats(self):
-        print()
+    # def stats(self):
+        # print()
 
-    def print(self):
-        print(self.form.project.get())
-        [print(x) for x in self.form.iterDump()]
-        print('Start: {}'.format(self.timeData.start))
-        print('End: {}'.format(self.timeData.end))
+    # def print(self):
+    #     print(self.form.project.get())
+    #     [print(x) for x in self.form.iterDump()]
+    #     print('Start: {}'.format(self.timeData.start))
+    #     print('End: {}'.format(self.timeData.end))
 
     def logString(self):
         string = '\n'.join([x.get() for x in self.form.iterGoals()])

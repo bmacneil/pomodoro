@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 try:
     from setuptools import setup
 except ImportError:
@@ -8,8 +9,9 @@ config = {
     'url': 'URL to get it',
     'download_url': 'URL to download it',
     'author_email': 'My Email',
-    'version': '0.1',
-    'install_requires': ['nose', 'schedule', 'tinydb', 'ujson'],
+    'version': '0.2',
+    'install_requires': ['schedule', 'tinydb', 'ujson'],
+    'python_requires': '>=3',
     'packages': ['pomodoro'],
     'scripts': [],
     'name': 'pomodoro',
