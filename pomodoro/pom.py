@@ -34,7 +34,7 @@ class LabeledAttribute(object):
 
 class Settings(object):
     def __init__(self, workTime=25, shortBreak=5, longBreak=20):
-        path = os.path.dirname(os.path.realpath(sys.path[0]))
+        path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         self.workTime = LabeledAttribute('Work Time', tk.IntVar(value=workTime))
         self.shortBreak = LabeledAttribute('Short Break', tk.IntVar(value=shortBreak))
         self.longBreak = LabeledAttribute('Long Break', tk.IntVar(value=longBreak))
@@ -184,7 +184,7 @@ class Pom(object):
         self.form.onTask.set('yes')
 
         self.directory = dbDir
-        self.dbFile = 'DB_new.json'
+        self.dbFile = 'DB.json'
         self.openDB()
         self.updateProjectsList()
 
